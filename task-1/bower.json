@@ -1,0 +1,17 @@
+{
+  "name": "task1",
+  "description": "CSS-task 1 at SHRI, Yandex",
+  "main": "index.js",
+  "authors": [
+    "Nikita Chesnokov"
+  ],
+  "license": "ISC",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
