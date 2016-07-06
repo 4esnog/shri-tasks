@@ -87,7 +87,7 @@ gulp.task('serve', ()=>{
 	bs.init({
 		server: 'public/',
 		// proxy: 'prod.dev/fanhack-new/public/',
-		tunnel: true
+		// tunnel: true
 	})
 
 	bs.watch('public/**/*').on('change', bs.reload)
