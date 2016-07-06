@@ -2,7 +2,7 @@
 
 // ==================================
 
-$width-lg: 1100px
+$width-lg: 1024px
 $width-md: 768px
 
 @mixin clearfix()
@@ -28,11 +28,11 @@ h2
 article, footer
 	overflow: hidden
 	padding-bottom: 10vh
-	font-size: calc(0.95em + 13 * (100vw - 320px) / (1100 - 320) )
+	font-size: calc(0.95em + 13 * (100vw - 320px) / (1024 - 320) )
 
 
 	@media screen and (min-width: $width-lg)
-		font-size: calc(0.8em + 15 * (100vw - 1100px) / (2000 - 1100) )
+		font-size: calc(0.7em + 15 * (100vw - 1024px) / (2000 - 1024) )
 
 	&:first-of-type
 		main .wr > p:first-of-type
@@ -54,6 +54,7 @@ article, footer
 		overflow: hidden
 		z-index: 1
 		will-change: background-position, background-size
+		// @include clearfix
 
 		// &::before
 		// 	content: ' '
@@ -62,10 +63,10 @@ article, footer
 		// 	height: 100%
 		// 	top: 0
 		// 	left: 0
-		// 	background-image: attr(data-bg-img url) no-repeat center center
+		// 	background: attr(data-bg-img url) no-repeat center center
 		// 	background-size: cover
 		// 	will-change: transform
-		// 	z-index: 3
+		// 	z-index: -1
 
 		.mask
 			box-sizing: border-box
@@ -107,6 +108,9 @@ article, footer
 
 		address
 			bottom: 1.3em
+			left: 0
+			// right: 0
+			padding: 0 1.3em
 			position: absolute
 			text-align: center
 			width: calc(100% - 2.6em)
@@ -116,6 +120,10 @@ article, footer
 			@media screen and (min-width: $width-md)
 				bottom: 2em
 				width: calc(100% - 4em)
+				padding: 0 2em
+
+			@media screen and (min-width: $width-md)
+				font-size: 1em
 
 	.full-img
 		height: 100vh
@@ -138,7 +146,7 @@ article, footer
 			@media screen and (min-width: $width-lg)
 				box-sizing: border-box
 				padding: 0
-				margin: 0 40px
+				margin: 0 calc(40px + 200 * (100vw - 1024px) / (2000 - 1024))
 
 			h2
 				margin: 0 5vw 5vh
