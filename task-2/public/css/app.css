@@ -1,0 +1,379 @@
+html, body {
+    min-height: 100%;
+}
+
+body {
+    background-color: #ACC0C1;
+}
+
+.container {
+    position: relative;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+@media (min-width: 450px) {
+    .container {
+        box-shadow: 1px 1px 20px #666;
+    }
+}
+
+.level {
+    position: relative;
+    min-width: 320px;
+    background-size: cover;
+    background-position: left top;
+    background-repeat: no-repeat;
+}
+
+.level_0 {
+    background-image: url(../img/level_0_bg.jpg);
+    height: 180px;
+    position: relative;
+}
+
+.level_0:after {
+    content: ' ';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url(../img/logo.png) no-repeat center 25px;
+    background-size: contain;
+    pointer-events: none;
+}
+
+.level_1 {
+    background-image: url(../img/level_1_bg.png);
+    height: 235px;
+}
+
+.level_2 {
+    background-image: url(../img/level_2_bg.png);
+    height: 235px;
+}
+
+.level_3 {
+    background-image: url(../img/level_3_bg.png);
+    height: 235px;
+}
+
+.level_4 {
+    background-image: url(../img/level_4_bg.png);
+    height: 75px;
+}
+
+.door {
+    position: absolute;
+    bottom: 0;
+    background: url(../img/door.png) no-repeat top left;
+    width: 64px;
+    height: 100px;
+
+    cursor: pointer;
+}
+
+.door_locked {
+    background: url(../img/door_locked.png) no-repeat top left;
+}
+
+.door_disabled {
+    opacity: .7;
+}
+
+.door_level_0 {
+    right: 2%;
+}
+
+.door_level_1 {
+    left: 2%;
+}
+
+.door_level_2 {
+    right: 2%;
+}
+
+.box {
+    position: absolute;
+    left: 10%;
+    bottom: 0;
+
+    background: url('../img/box.png') no-repeat top left;
+    width: 32px;
+    height: 32px;
+
+    cursor: pointer;
+}
+
+.popup {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: 0;
+
+    background-color: rgba(0,0,0,.3);
+    transition: opacity .3s;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup_hidden {
+    pointer-events: none;
+    opacity: 0;
+}
+
+.popup__content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 400px;
+    overflow: hidden;
+
+    background: #000 url(../img/door_level_0.jpg) no-repeat center;
+    background-size: cover;
+}
+
+.popup__close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 24px;
+    color: #fff;
+
+    cursor: pointer;
+    z-index: 99999;
+    text-shadow: 0 0 10px #000;
+}
+
+.popup__content_level_0 {
+    /* Можно поставить какую-нибудь свою картинку двери на бек */
+}
+
+.popup__content_level_1 {
+    /* Можно поставить какую-нибудь свою картинку двери на бек */
+}
+
+.popup__content_level_2 {
+    /* Можно поставить какую-нибудь свою картинку двери на бек */
+}
+.popup__content_level_3 {
+    background-image: url(../img/door__box.png);
+    background-size: contain;
+}
+
+.door-riddle {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 100%;
+}
+
+.door-riddle__button {
+    width: 64px;
+    height: 64px;
+    border-radius: 64px;
+    background-color: #583319;
+    border: 1px solid #F3E9E0;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, .4);
+
+    transition: background-color .3s;
+}
+
+.door-riddle__button_pressed {
+    background-color: #F3E5D9;
+}
+
+
+/* ============ My styles ============ */
+
+/* ============ Door 1 =============== */
+
+.door-riddle_level_1::after {
+    content: ' ';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 15%;
+    background: url('../img/level-1/grassMid.png') repeat-x;
+    background-size: 15% 100%;
+}
+
+.door-1-riddle__chain {
+    position: absolute;
+    top: 0;
+    left: 10%;
+    width: 4em;
+    height: 25%;
+    /*background: #fff;*/
+    background: url('../img/level-1/chain.png') repeat-y;
+    background-size: 4em auto;
+}
+
+.door-1-riddle__box {
+    position: absolute;
+    top: 25%;
+    left: calc(10% - 1em);
+    width: 6em;
+    height: 6em;
+    background: url('../img/level-1/boxCrate_double.png');
+    background-size: 6em 6em;
+
+    /*transition: transform 0.5s ease-in;*/
+    /*transform: translatey(220%);*/
+}
+
+.door-1-riddle__key {
+    position: absolute;
+    bottom: 25%;
+    /*transform: translate(8%, calc(75% - 5em));*/
+    left: 8%;
+    width: 5em;
+    height: 5em;
+    background: url('../img/level-1/hudKey_green.png') repeat-x;
+    background-size: 5em 5em;
+    /*transform: translateX(2em);*/
+    will-change: top, left;
+    z-index: 999;
+}
+
+.door-1-riddle__bush {
+    position: absolute;
+    bottom: 15%;
+    right: 5%;
+    width: 10em;
+    height: 10em;
+    background: url('../img/level-1/bush.png') no-repeat;
+    background-size: 10em 10em;
+}
+
+.door-1-riddle__lock {
+    position: absolute;
+    bottom: 15%;
+    right: 15%;
+    width: 5em;
+    height: 5em;
+    background: url('../img/level-1/lockGreen.png') no-repeat;
+    background-size: 5em 5em;
+}
+
+.door-1-riddle__spikes {
+    position: absolute;
+    bottom: 15%;
+    left: -3%;
+    width: 10em;
+    height: 6em;
+    background: url('../img/level-1/spikes.png') repeat-x;
+    background-size: 6em 6em;
+}
+
+
+/* ============ Animations, states =========== */
+
+.hidden {
+    visibility: hidden;
+    display: none;
+}
+
+@keyframes appear {
+    0% {
+        display: block;
+        visibility: visible;
+        opacity: 0;
+        transform: scale(0.75);
+    }
+
+    60% {
+        opacity: 1;
+        transform: scale(1.4);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes box_drop-down {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(35vh);
+    }
+}
+
+.appear {
+    display: block;
+    animation: appear 0.35s 1 forwards;
+}
+
+.box_drop-down {
+    animation: box_drop-down 0.35s 1 forwards;
+    /*transform: translateY(13em);*/
+}
+
+.disappear {
+    animation: appear 0.35s 1 reverse forwards;
+}
+
+/* END ============= Door 1 ================== */
+
+
+/* ================= Door 2 ================== */
+
+.door-2-riddle__player {
+    background: url('../img/level-2/hudPlayer_green.png') no-repeat;
+    background-size: 100%;
+    width: 8em;
+    height: 8em;
+}
+
+.door-2-riddle__ground {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    transition: all 0.25s ease-out;
+    will-change: top, right, bottom, left, transform;
+}
+
+.door-2-riddle__ground_dirt {
+    background-image: url('../img/level-2/dirtCenter.png');
+}
+
+.door-2-riddle__ground_grass {
+    background-image: url('../img/level-2/grassCenter.png');
+}
+
+.door-2-riddle__ground_sand {
+    background-image: url('../img/level-2/sandCenter.png');
+}
+
+.door-2-riddle__ground_stone {
+    background-image: url('../img/level-2/stoneCenter.png');
+}
+
+/* END ============= Door 2 ================== */
+
+
+/* ================= Door 3 ================== */
+
+.door-3-riddle__circle {
+    box-sizing: border-box;
+    width: 30vh;
+    height: 30vh;
+    background: #FFCC00;
+    /*border: 15vh solid #FFCC00;*/
+    border-radius: 50%;
+    transition: all 0.05s ease-out;
+    will-change: border-width;
+    transform: scale(4);
+}
