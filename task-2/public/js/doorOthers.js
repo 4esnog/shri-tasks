@@ -16,13 +16,6 @@ function Door0(number, onUnlock) {
     ];
 
 
-    // REMOVE THIS!!!
-    // buttons[0].addEventListener('click', function(e){
-    //     this.unlock();
-    // }.bind(this));
-    // ==============
-
-
     buttons.forEach(function(b) {
         b.addEventListener('pointerdown', _onButtonPointerDown.bind(this));
         b.addEventListener('pointerup', _onButtonPointerUp.bind(this));
@@ -127,17 +120,19 @@ function Door1(number, onUnlock) {
     // Обработчик начала DnD
     function onKeyDrag(e) {
 
+        var targetDims = e.target.getBoundingClientRect();
+
         window.requestAnimationFrame(function() {
-            e.target.style.transform = 'scale(1.3)';
+            e.target.style.transform = 'scale(1.2) translate(' + state.lastCoords.x/1.2 + 'px, ' + state.lastCoords.y/1.2 + 'px)';
         });
 
-        state.startCoords = {
-            x: e.pageX - state.lastCoords.x,
-            y: e.pageY - state.lastCoords.y
+        if (!state.startCoords) state.startCoords = {
+            x: targetDims.left,
+            y: targetDims.top
         };
         state.dragOffset = {
-            x: e.pageX - e.target.offsetLeft,
-            y: e.pageY - e.target.offsetTop
+            x: e.pageX - targetDims.left,
+            y: e.pageY - targetDims.top
         };
 
         state.onKeyMoveBinded = onKeyMove.bind(this, e.target, state.startCoords, state.dragOffset, state.endCoords);
@@ -153,20 +148,26 @@ function Door1(number, onUnlock) {
     // Обработчик передвижения ключа
     function onKeyMove(obj, startCoords, dragOffset, endCoords, e) {
         
-        endCoords.x = e.pageX - dragOffset.x;
-        endCoords.y = e.pageY - dragOffset.y;
-
+        // Координаты для анимирования через top/left
+        // 
+        // endCoords.x = e.pageX - dragOffset.x;
+        // endCoords.y = e.pageY - dragOffset.y;
+        endCoords.x = (e.pageX - dragOffset.x) - startCoords.x;
+        endCoords.y = (e.pageY - dragOffset.y) - startCoords.y;
         window.requestAnimationFrame(function() {
 
-            obj.style.left = endCoords.x + 'px';
-            obj.style.top = endCoords.y + 'px';
-
-            state.lastCoords.x = endCoords.x;
-            state.lastCoords.y = endCoords.y;
+            // Анимирование через top/left
+            // 
+            // obj.style.left = endCoords.x + 'px';
+            // obj.style.top = endCoords.y + 'px';
+            obj.style.transform = 'scale(1.2) translate(' + endCoords.x/1.2 + 'px, ' + endCoords.y/1.2 + 'px)';
             
         });
 
-        // console.log('onKeyMove');       
+        state.lastCoords.x = endCoords.x;
+        state.lastCoords.y = endCoords.y;
+
+        console.log('onKeyMove');      
     }
 
     // Обработчик окончания DnD
@@ -177,7 +178,7 @@ function Door1(number, onUnlock) {
         }
 
         window.requestAnimationFrame(function() {
-            e.target.style.transform = 'scale(1)';
+            obj.style.transform = 'scale(1) translate(' + state.lastCoords.x + 'px, ' + state.lastCoords.y + 'px)';
         });
         
         this.popup.removeEventListener('pointermove', state.onKeyMoveBinded);
@@ -300,7 +301,7 @@ function Door2(number, onUnlock) {
 
         }
 
-        pointers[e.pointerId].target.style.transitionDuration = '0.1s';
+        pointers[e.pointerId].target.style.transitionDuration = '0.05s';
 
         this.popup.addEventListener('pointermove', pointers[e.pointerId].onMove);
         this.popup.addEventListener('pointerup', pointers[e.pointerId].onDrop);
@@ -317,13 +318,13 @@ function Door2(number, onUnlock) {
             if ((direction == 'left') || (direction == 'right')) {
 
                 var newX = e.pageX - pointer.targetCoords.x - pointer.offset.x;
-                console.log(newX);
 
                 if (((direction == 'left') && (newX > 0))
                     || ((direction == 'right') && (newX < 0))) return;
                 
                 window.requestAnimationFrame(function() {
-                    pointer.target.style.left = newX + 'px';
+                    // pointer.target.style.left = newX + 'px';
+                    pointer.target.style.transform = 'translateX(' + newX + 'px)';
                 });
             
             } else if ((direction == 'top') || (direction == 'bottom')) {
@@ -334,7 +335,8 @@ function Door2(number, onUnlock) {
                     || ((direction == 'bottom') && (newY < 0))) return;
 
                 window.requestAnimationFrame(function(e) {
-                    pointer.target.style.top = newY + 'px';
+                    // pointer.target.style.top = newY + 'px';
+                    pointer.target.style.transform = 'translateY(' + newY + 'px)';
                 });                    
             
             }
@@ -350,7 +352,7 @@ function Door2(number, onUnlock) {
 
         window.requestAnimationFrame(function() {
             pointers[pointerId].target.style.transitionDuration = '0.5s';
-            pointers[pointerId].target.style.transform = 'scale(1)';
+            pointers[pointerId].target.style.transform = '';
         });
         
 
