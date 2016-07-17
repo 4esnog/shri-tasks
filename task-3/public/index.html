@@ -4,26 +4,22 @@
 	<meta charset="UTF-8">
 	<title>Задание 3</title>
 	<link rel="stylesheet" href="css/style.css">
+	<script src="js/index.js" defer></script>
 </head>
 <body>
-	<h1>Hi</h1>
+	<h1>Киноглушитель</h1>
 
-	<div class="popup-wr">
+	<div class="popup-wr" id="popup">
 		<div class="popup">
 			<strong>Заливай!</strong>
-			<!-- <div class="popup__labels">
-				<label for="form__video" class="popup__label">Видео</label>
-				<label for="form__audio" class="popup__label">Аудио</label>
-				<label for="form__subtitles" class="popup__label">Субтитры</label>
-			</div> -->
 			<form class="popup__form">
-				<input type="url" id="form__video" placeholder="Ссылка на видео" />
-				<input type="url" id="form__audio" placeholder="Ссылка на аудио" />
-				<input type="url" id="form__subtitles" placeholder="Ссылка на субтитры" />
-				<button>Magic</button>
+				<label>Видео: <input type="file" id="video" /></label>
+				<label>Саундтрек: <input type="file" id="audio" /></label>
+				<label>Субтитры: <input type="file" id="subtitles" /></label>
+				<button id="magic-button">Magic</button>
 			</form>	
 		</div>
 	</div>
-	
+
 </body>
 </html>
