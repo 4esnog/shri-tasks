@@ -1,0 +1,33 @@
+@import 'normalize.css'
+
+:root
+	--light: #dfe0dc
+	--dark: #351431
+
+html
+	height: 100%
+	width: 100%
+
+body
+	background: var(--light)
+	padding: 2rem
+
+.popup
+	position: fixed
+	height: 50vh
+	width: 50vw
+	background: #eee
+	box-shadow: 0 1em 3.5em -0.8em rgba(0,0,0,.5)
+	z-index: 999
+
+
+	&::before
+		content: ' '
+		display: block
+		position: fixed
+		top: 0
+		left: 0
+		right: 0
+		bottom: 0
+		background: rgba(0,0,0,.3)
+		z-index: 990
