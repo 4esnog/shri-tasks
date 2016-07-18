@@ -15,7 +15,7 @@ html {
 
 body {
   background: var(--light);
-  padding: 2rem;
+  padding: 10%;
 }
 
 h1 {
@@ -121,7 +121,270 @@ h1 {
 
 }
 
-canvas {
+.player {
   display: block;
   margin: 0 auto;
+  position: relative;
+  background-color: #101110;
+  overflow: hidden;
+
+  &:hover {
+    & .player-ui {
+      transform: translateY(0);
+
+    }
+
+  }
+
 }
+
+.player-ui {
+  display: block;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 64px;
+  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.74) 76%, rgba(0, 0, 0, 0.88) 100%);
+  text-align: justify;
+  transform: translateY(100%);
+  transition: all 0.13s ease-in-out 0.3s;
+
+  & .player-ui__el {
+    display: inline-block;
+    vertical-align: middle;
+    width: 32px;
+    height: 32px;
+    margin: 16px 0 16px 16px;
+    background-position: 0 0;
+    background-size: 32px 32px;
+    background-repeat: no-repeat;
+    opacity: 0.75;
+
+    &:hover {
+      cursor: pointer;
+      opacity: 1;
+
+    }
+
+    &.player-ui__el_play-pause {
+      background-image: url('../assets/ui/pause.png');
+      max-width: 5%;
+
+      &.paused {
+        background-image: url('../assets/ui/play.png');
+
+      }
+
+    }
+
+    &.player-ui__el_stop {
+      background-image: url('../assets/ui/stop.png');
+      max-width: 5%;
+
+    }
+
+    &.player-ui__el_timeline {
+      background-color: transparent;
+      width: 60%;
+      margin: 16px 16px;
+    }
+
+    &.player-ui__el_volume {
+      background-color: transparent;
+      box-sizing: padding-box;
+      width: 20%;
+      padding-left: 64px;
+      background-image: url('../assets/ui/speaker-full.png');
+      background-position: 16px 0;
+      /* float: right; */
+
+      &.muted {
+        background-image: url('../assets/ui/speaker-muted.png');
+      }
+
+    }
+
+  }
+
+}
+
+/* === Timeline style === */
+
+input[type=range].player-ui__el_timeline {
+  -webkit-appearance: none;
+  width: 100%;
+  margin: 6.75px 0;
+}
+input[type=range].player-ui__el_timeline:focus {
+  outline: none;
+}
+input[type=range].player-ui__el_timeline::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 12.5px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.16), 0px 0px 1px rgba(13, 13, 13, 0.16);
+  background: rgba(255, 255, 255, 0.78);
+  border-radius: 4.2px;
+  border: 0px solid rgba(0, 0, 0, 0);
+}
+input[type=range].player-ui__el_timeline::-webkit-slider-thumb {
+  box-shadow: 1.8px 1.8px 4.3px rgba(0, 0, 0, 0.55), 0px 0px 1.8px rgba(13, 13, 13, 0.55);
+  border: 0px solid rgba(0, 0, 0, 0);
+  height: 26px;
+  width: 26px;
+  border-radius: 26px;
+  background: #ffffff;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -6.75px;
+}
+input[type=range].player-ui__el_timeline:focus::-webkit-slider-runnable-track {
+  background: rgba(255, 255, 255, 0.78);
+}
+input[type=range].player-ui__el_timeline::-moz-range-track {
+  width: 100%;
+  height: 12.5px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.16), 0px 0px 1px rgba(13, 13, 13, 0.16);
+  background: rgba(255, 255, 255, 0.78);
+  border-radius: 4.2px;
+  border: 0px solid rgba(0, 0, 0, 0);
+}
+input[type=range].player-ui__el_timeline::-moz-range-thumb {
+  box-shadow: 1.8px 1.8px 4.3px rgba(0, 0, 0, 0.55), 0px 0px 1.8px rgba(13, 13, 13, 0.55);
+  border: 0px solid rgba(0, 0, 0, 0);
+  height: 26px;
+  width: 26px;
+  border-radius: 26px;
+  background: #ffffff;
+  cursor: pointer;
+}
+input[type=range].player-ui__el_timeline::-ms-track {
+  width: 100%;
+  height: 12.5px;
+  cursor: pointer;
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+input[type=range].player-ui__el_timeline::-ms-fill-lower {
+  background: rgba(255, 255, 255, 0.78);
+  border: 0px solid rgba(0, 0, 0, 0);
+  border-radius: 8.4px;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.16), 0px 0px 1px rgba(13, 13, 13, 0.16);
+}
+input[type=range].player-ui__el_timeline::-ms-fill-upper {
+  background: rgba(255, 255, 255, 0.78);
+  border: 0px solid rgba(0, 0, 0, 0);
+  border-radius: 8.4px;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.16), 0px 0px 1px rgba(13, 13, 13, 0.16);
+}
+input[type=range].player-ui__el_timeline::-ms-thumb {
+  box-shadow: 1.8px 1.8px 4.3px rgba(0, 0, 0, 0.55), 0px 0px 1.8px rgba(13, 13, 13, 0.55);
+  border: 0px solid rgba(0, 0, 0, 0);
+  height: 26px;
+  width: 26px;
+  border-radius: 26px;
+  background: #ffffff;
+  cursor: pointer;
+  height: 12.5px;
+}
+input[type=range].player-ui__el_timeline:focus::-ms-fill-lower {
+  background: rgba(255, 255, 255, 0.78);
+}
+input[type=range].player-ui__el_timeline:focus::-ms-fill-upper {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+/* === END timeline styles === */
+
+/* === Volume track styles === */
+
+input[type=range].player-ui__el_volume {
+  -webkit-appearance: none;
+  width: 100%;
+  margin: 5.05px 0;
+}
+input[type=range].player-ui__el_volume:focus {
+  outline: none;
+}
+input[type=range].player-ui__el_volume::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6.9px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.15), 0px 0px 1px rgba(13, 13, 13, 0.15);
+  background: #ffffff;
+  border-radius: 10.8px;
+  border: 0px solid rgba(0, 0, 0, 0);
+}
+input[type=range].player-ui__el_volume::-webkit-slider-thumb {
+  box-shadow: 1.7px 1.7px 3.2px rgba(0, 0, 0, 0.43), 0px 0px 1.7px rgba(13, 13, 13, 0.43);
+  border: 0px solid rgba(0, 0, 0, 0);
+  height: 17px;
+  width: 17px;
+  border-radius: 17px;
+  background: #ffffff;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -5.05px;
+}
+input[type=range].player-ui__el_volume:focus::-webkit-slider-runnable-track {
+  background: #ffffff;
+}
+input[type=range].player-ui__el_volume::-moz-range-track {
+  width: 100%;
+  height: 6.9px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.15), 0px 0px 1px rgba(13, 13, 13, 0.15);
+  background: #ffffff;
+  border-radius: 10.8px;
+  border: 0px solid rgba(0, 0, 0, 0);
+}
+input[type=range].player-ui__el_volume::-moz-range-thumb {
+  box-shadow: 1.7px 1.7px 3.2px rgba(0, 0, 0, 0.43), 0px 0px 1.7px rgba(13, 13, 13, 0.43);
+  border: 0px solid rgba(0, 0, 0, 0);
+  height: 17px;
+  width: 17px;
+  border-radius: 17px;
+  background: #ffffff;
+  cursor: pointer;
+}
+input[type=range].player-ui__el_volume::-ms-track {
+  width: 100%;
+  height: 6.9px;
+  cursor: pointer;
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+input[type=range].player-ui__el_volume::-ms-fill-lower {
+  background: #f2f2f2;
+  border: 0px solid rgba(0, 0, 0, 0);
+  border-radius: 21.6px;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.15), 0px 0px 1px rgba(13, 13, 13, 0.15);
+}
+input[type=range].player-ui__el_volume::-ms-fill-upper {
+  background: #ffffff;
+  border: 0px solid rgba(0, 0, 0, 0);
+  border-radius: 21.6px;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.15), 0px 0px 1px rgba(13, 13, 13, 0.15);
+}
+input[type=range].player-ui__el_volume::-ms-thumb {
+  box-shadow: 1.7px 1.7px 3.2px rgba(0, 0, 0, 0.43), 0px 0px 1.7px rgba(13, 13, 13, 0.43);
+  border: 0px solid rgba(0, 0, 0, 0);
+  height: 17px;
+  width: 17px;
+  border-radius: 17px;
+  background: #ffffff;
+  cursor: pointer;
+  height: 6.9px;
+}
+input[type=range].player-ui__el_volume:focus::-ms-fill-lower {
+  background: #ffffff;
+}
+input[type=range].player-ui__el_volume:focus::-ms-fill-upper {
+  background: #ffffff;
+}
+
+
+/* === END Volume track styles === */

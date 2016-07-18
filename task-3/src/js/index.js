@@ -13,15 +13,29 @@ const urls = {
 	srtLocal: '../assets/subs.srt'
 };
 
-
+// Get existing DOM nodes
 let magicButton = document.getElementById('magic-button');
 let videoInput = document.getElementById('video');
 let audioInput = document.getElementById('audio');
 let subtitlesInput = document.getElementById('subtitles');
+let scratches = document.getElementById('scratches');
+let player = document.getElementById('player');
+
+// Init player UI
+let ui = createUI();
+
+// Init canvas w/ styles
+let backCanvas = document.createElement('canvas');
 let canvas = document.createElement('canvas');
 let	ctx = canvas.getContext('2d');
 let mediaLoadState = 0;
 let subtitleIndex = 0;
+let bodyStyle = getComputedStyle(document.querySelectorAll('body')[0]);
+let bodyPadding = parseInt(bodyStyle.paddingLeft) + parseInt(bodyStyle.paddingRight);
+let isSubtitleShown = false;
+let canvasBgColor = '#101110';
+let canvasTextColor = '#e1e8e2';
+let videoBrightness = 2;
 let subtitleStyles = {
 	fontRatio: 0.055,
 	paddingRatio: 0.1,
@@ -29,7 +43,9 @@ let subtitleStyles = {
 };
 let	videoWidth,
 		videoHeight,
+		videoSizeRatio,
 		video,
+		videoTimelineRatio,
 		audio,
 		subtitles;
 
@@ -38,7 +54,8 @@ magicButton.addEventListener('click', onMagicButtonClick);
 videoInput.addEventListener('change', onInputChange.bind(this, 'video'));
 audioInput.addEventListener('change', onInputChange.bind(this, 'audio'));
 subtitlesInput.addEventListener('change', onInputChange.bind(this, 'subtitles'));
-canvas.addEventListener('click', onCanvasClick);
+canvas.addEventListener('click', onPlayPause);
+window.addEventListener('resize', onWindowResize);
 
 
 // === Helpers ===
@@ -46,7 +63,7 @@ canvas.addEventListener('click', onCanvasClick);
 // === Handle "Maigc" button click ===
 function onMagicButtonClick(e) {
 	e.preventDefault();
-	if (mediaLoadState < 3) {
+	if (mediaLoadState < 5) {
 		alert('Вы что-то забыли :)');
 		return;
 
@@ -57,24 +74,27 @@ function onMagicButtonClick(e) {
 
 	}
 
-	// canvas.style.width = videoWidth;
-	// canvas.style.height = videoHeight;
 	canvas.width = videoWidth;
 	canvas.height = videoHeight;
-	// ctx.fillStyle = 'white';
-	ctx.font = `${subtitleStyles.fontSize}px Oranienbaum bold, serif`;
-	document.querySelector('body').appendChild(canvas);
+	ctx.fillStyle = canvasBgColor;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	player.appendChild(ui.block);
+	player.appendChild(canvas);
 
 	document.querySelector('#popup').remove();
 }
 
-function onCanvasClick(e) {
+function onPlayPause(e) {
 	if (video.paused || video.ended) {
 		video.play();
+		scratches.play();
 		audio.play();
+		ui.play.classList.remove('paused');
 	} else {
 		video.pause();
+		scratches.pause();
 		audio.pause();
+		ui.play.classList.add('paused');
 	}
 }
 
@@ -97,6 +117,8 @@ function onInputChange(type, e) {
 		mediaLoadState++;
 		reader.onloadend = (e) => {		
 			audio = createAudio(reader.result);
+			// popup.appendChild(audio);
+			// audio.controls = true;
 			mediaLoadState++;
 		}
 
@@ -117,7 +139,29 @@ function createAudio(src) {
 	let audio = document.createElement('audio');
 	audio.src = src;
 	audio.autoplay = false;
+	audio.volume = 0.5;
+
+	// audio.addEventListener('canplay', (e) => {
+	// 	// console.dir('Загружено');
+	// 	let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+	// 	let source = audioCtx.createMediaElementSource(audio);
+	// 	let leftPan = audioCtx.createStereoPanner();
+	// 	leftPan.pan.value = -1;
+	// 	// let rightPan = audioCtx.createStereoPanner();
+	// 	// rightPan.pan.value = 1;
+
+	// 	let gainNode = audioCtx.createGain();
+
+		
+	// 	source.connect(gainNode);
+	// 	// source.connect(rightPan);
+	// 	// leftPan.connect(gainNode);
+	// 	gainNode.connect(audioCtx.destination);
+
+	// 	// source.connect(audioCtx.destination);
+	// });
 	
+
 	return audio;
 }
 
@@ -136,18 +180,22 @@ function createVideo(src) {
 		document.querySelector('body').appendChild(video);
 		videoWidth = video.clientWidth;
 		videoHeight = video.clientHeight;
+		videoSizeRatio = videoWidth / videoHeight;
+		// console.dir(videoSizeRatio);
 		video.style.display = 'none';
+		videoTimelineRatio = video.duration / 100;
 
 		subtitleStyles.padding = videoWidth * subtitleStyles.paddingRatio;
 		subtitleStyles.fontSize = videoHeight * subtitleStyles.fontRatio;
 		subtitleStyles.lineInterval = subtitleStyles.fontSize * subtitleStyles.lineIntervalRatio;
-		console.dir(subtitleStyles);
+		// console.dir(subtitleStyles);
 	});
 
 	video.addEventListener('timeupdate', (e) => {
 		let time = (e.target.currentTime * 1000).toFixed();
 		if (time >= subtitles[subtitleIndex].endTime) {
-			console.log( 'Let\'s show subtitles! Time: ' + time );
+			// console.log( 'Let\'s show subtitles! Time: ' + time );
+			isSubtitleShown = true;
 			showSubtitle(subtitles[subtitleIndex]);
 			setTimeout(hideSubtitle, subtitles[subtitleIndex].timeLength);
 		}
@@ -157,10 +205,70 @@ function createVideo(src) {
 	return video;
 }
 
+// === Init UI for canvas player
+function createUI() {
+	let ui = {
+		block: document.createElement('div'),
+		play: document.createElement('div'),
+		stop: document.createElement('div'),
+		timeline: document.createElement('input'),
+		volume: document.createElement('input')
+	};
+	ui.block.classList.add('player-ui');
+	ui.block.appendChild(ui.play);
+	ui.block.appendChild(ui.stop);
+	ui.block.appendChild(ui.timeline);
+	ui.block.appendChild(ui.volume);
+
+	ui.play.classList.add('player-ui__el', 'player-ui__el_play-pause', 'paused');
+	ui.stop.classList.add('player-ui__el', 'player-ui__el_stop');
+	ui.timeline.setAttribute('type', 'range');
+	ui.timeline.classList.add('player-ui__el', 'player-ui__el_timeline');
+	ui.timeline.value = 0;
+	ui.volume.setAttribute('type', 'range');
+	ui.volume.setAttribute('touch-action', 'none');
+	ui.volume.classList.add('player-ui__el', 'player-ui__el_volume');
+
+	ui.play.addEventListener('click', onPlayPause);
+
+	ui.stop.addEventListener('click', (e) => {
+		video.pause();
+		scratches.pause();
+		audio.pause();
+		video.currentTime = 0;
+		audio.currentTime = 0;
+		subtitleIndex = 0;
+		ui.play.classList.add('paused');
+		ui.timeline.value = 0;
+	});
+
+	ui.timeline.addEventListener('change', (e) => {
+		video.currentTime = parseInt(e.target.value) * videoTimelineRatio;
+		audio.currentTime = video.currentTime;
+	});
+
+	ui.volume.addEventListener('pointerdown', (e) => {
+		e.target.addEventListener('pointermove', onVolumeChange);
+		e.target.addEventListener('pointerup', onVolumeChangeEnd);
+	});
+
+	ui.volume.addEventListener('click', (e) => {
+		audio.volume = e.target.value / 100;
+		if (audio.volume === 0) {
+			e.target.classList.add('muted');
+		} else {
+			e.target.classList.remove('muted');
+		}
+	});
+
+	return ui;
+}
+
 // === Process video.play() ===
 function onVideoPlay(e) {
-	drawVideo(video, canvas, videoWidth, videoHeight);
-	// video.style.display = 'none';
+	scratches.play();
+	drawVideo(video, scratches, canvas, backCanvas, videoWidth, videoHeight);
+	drawScratches(scratches, canvas, videoWidth, videoHeight);
 	audio.play();
 }
 
@@ -170,58 +278,109 @@ function onVideoPause(e) {
 	// audio.pause();
 }
 
+function onVolumeChange(e) {
+	audio.volume = parseInt(e.target.value) / 100;
+	if (audio.volume === 0) {
+		e.target.classList.add('muted');
+	} else {
+		e.target.classList.remove('muted');
+	}
+}
+
+function onVolumeChangeEnd(e) {
+	e.target.removeEventListener('pointermove', onVolumeChange);
+	e.target.removeEventListener('pointerup', onVolumeChangeEnd);
+}
+
 // === Draw video on canvas with Effects ===
-function drawVideo(video, canvas, width, height) {
+function drawVideo(video, scratches, canvas, backCanvas, width, height) {
 	
 	if (video.paused || video.ended) {
 		return false;
 	}
 
 	let ctx = canvas.getContext('2d');
+	// let bctx = backCanvas.getContext('2d');
 
+	// bctx.clearRect(0, 0, backCanvas.width, backCanvas.height);
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-	ctx.drawImage(video, 0, 0, width, height);
-	let imgData = ctx.getImageData(0, 0, width, height);
-	let data = imgData.data;
+	requestAnimationFrame(() => {
+		
+		ctx.drawImage(video, 0, 0, width, height);
+		let imgData = ctx.getImageData(0, 0, width, height);
+		let data = imgData.data;
 
-	for (let i = 0; i < data.length; i+=4) {
-		let r = data[i];
-		let g = data[i+1];
-		let b = data[i+2];
+		for (let i = 0; i < data.length; i+=4) {
+			let r = data[i];
+			let g = data[i+1];
+			let b = data[i+2];
 
-		let avg = (0.21 * r) + (0.72 * g) + (0.07 * b);
+			let avg = ((0.21 * r) + (0.72 * g) + (0.07 * b)) * 3;
 
-		data[i] = avg;
-		data[i+1] = avg;
-		data[i+2] = avg;
+			data[i] = avg;
+			data[i+1] = avg;
+			data[i+2] = avg;
+		}
+
+		ctx.putImageData(imgData, 0, 0);
+		
+	});
+	
+
+	setTimeout(drawVideo, 20, video, scratches, canvas, backCanvas, videoWidth, videoHeight);
+}
+
+function drawScratches(scrchVideo, canvas, width, height) {
+	if (scrchVideo.paused || scrchVideo.ended) {
+		return false;
 	}
 
-	ctx.putImageData(imgData, 0, 0);
+	let ctx = canvas.getContext('2d');
 
-	setTimeout(drawVideo, 20, video, canvas, width, height);
+	requestAnimationFrame(() => {
+		// ctx.clearRect(0, 0, width, height);
+		ctx.globalAlpha = 0.2;
+		ctx.drawImage(scrchVideo, 0, 0, width, height);
+		ctx.globalAplha = 1;
+	});
+
+	setTimeout(drawScratches, 20, scrchVideo, canvas, width, height);
 }
 
 function showSubtitle(subtl) {
+
+	if (!isSubtitleShown) {
+		console.log('Don\'t show :(');
+		return false;
+	}
+
+	// isSubtitleShown = true;
 	video.pause();
-	ctx.fillStyle = 'black';
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	ctx.fillStyle = 'white';
-	let fullTextHeight = (subtl.content.length * subtitleStyles.fontSize)
-							 + ((subtl.content.length - 1) * subtitleStyles.lineInterval);
-	let topPadding = (videoHeight - fullTextHeight) / 2;
-	subtl.content.forEach((el, i) => {
-		let top = topPadding + (subtitleStyles.fontSize * i)
-							+ (subtitleStyles.lineInterval * i);
-		let left = subtitleStyles.padding;
-		// console.log(top + '~~~' + left);
-		ctx.fillText(el, left, top);
+	requestAnimationFrame(() => {
+		ctx.fillStyle = canvasBgColor;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.fillStyle = canvasTextColor;
+		ctx.font = `${subtitleStyles.fontSize}px Oranienbaum bold, serif`;
+
+		let fullTextHeight = (subtl.content.length * subtitleStyles.fontSize)
+								 + ((subtl.content.length - 1) * subtitleStyles.lineInterval);
+		let topPadding = (videoHeight - fullTextHeight) / 2;
+
+		subtl.content.forEach((el, i) => {
+			let top = topPadding + (subtitleStyles.fontSize * i)
+								+ (subtitleStyles.lineInterval * i);
+			let left = subtitleStyles.padding;
+			ctx.fillText(el, left, top);
+		});
 	});
+
+	setTimeout(showSubtitle, 20, subtl);
 	
 }
 
 function hideSubtitle() {
-
+	isSubtitleShown = false;
 	subtitleIndex++;
 	video.play();
 }
@@ -274,7 +433,6 @@ function parseSrt(text) {
 		// === Join subtitle content ===
 		subtitle.splice(0, 2);
 		res.content = subtitle;
-		console.dir(res.content);
 
 		return res;
 	});
@@ -283,7 +441,20 @@ function parseSrt(text) {
 
 }
 
+function onWindowResize(e) {
+	
+	videoWidth = document.documentElement.clientWidth - bodyPadding;
+	videoHeight = videoWidth / videoSizeRatio;
+	canvas.width = videoWidth;
+	canvas.height = videoHeight;
+	subtitleStyles.padding = videoWidth * subtitleStyles.paddingRatio;
+	subtitleStyles.fontSize = videoHeight * subtitleStyles.fontRatio;
+	subtitleStyles.lineInterval = subtitleStyles.fontSize * subtitleStyles.lineIntervalRatio;
+	if (isSubtitleShown) {
+		showSubtitle(subtitles[subtitleIndex]);
+	}
 
+}
 
 
 
