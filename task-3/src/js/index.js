@@ -14,40 +14,68 @@ const urls = {
 };
 
 // Get existing DOM nodes
-let magicButton = document.getElementById('magic-button');
-let videoInput = document.getElementById('video');
-let audioInput = document.getElementById('audio');
-let subtitlesInput = document.getElementById('subtitles');
-let scratches = document.getElementById('scratches');
-let player = document.getElementById('player');
+const magicButton = document.getElementById('magic-button');
+const videoInput = document.getElementById('video');
+const audioInput = document.getElementById('audio');
+const subtitlesInput = document.getElementById('subtitles');
+const player = document.getElementById('player');
 
 // Init player UI
-let ui = createUI();
+const ui = createUI();
 
 // Init canvas w/ styles
-let backCanvas = document.createElement('canvas');
-let canvas = document.createElement('canvas');
-let	ctx = canvas.getContext('2d');
-let mediaLoadState = 0;
-let subtitleIndex = 0;
+const backCanvas = document.createElement('canvas');
+const canvas = document.createElement('canvas');
+const	ctx = canvas.getContext('2d');
+
+
 let bodyStyle = getComputedStyle(document.querySelectorAll('body')[0]);
 let bodyPadding = parseInt(bodyStyle.paddingLeft) + parseInt(bodyStyle.paddingRight);
-let isSubtitleShown = false;
-let canvasBgColor = '#101110';
-let canvasTextColor = '#e1e8e2';
-let videoBrightness = 2;
-let subtitleStyles = {
+
+// === НАСТРОЙКИ ===
+// Цвет фона субтитров
+const canvasBgColor = {
+	r: 16,
+	g: 20,
+	b: 16,
+	hex: "#101410"
+};
+const canvasTextColor = '#e1e8e2'; // Цвет текста субтитров
+const brightnessDiffRatio = 0.2; // Коэффициент разброса яркости кадров
+const grainDiffRatio = 0.15; // Коэффициент зернистости (шума)
+const minFps = 18;
+const maxFps = 26;
+const scratchStyle = {
+	minLength: 5,    // Длина и прозрачность царапин,
+	maxLength: 20,   // в % от высоты видео (от 0 до 100)
+	minOpacity: 30,  // 0 .. 100
+	maxOpacity: 90,  // 0 .. 100
+	frequency: 0.75, // 0 .. 1
+}
+// const downsampleRatio = 5;
+const subtitleStyles = {
 	fontRatio: 0.055,
 	paddingRatio: 0.1,
 	lineIntervalRatio: 0.5
 };
+// === END НАСТРОЙКИ ===
+
+
+let state = {
+	subtitleShown: false,
+	subtitleIndex: 0,
+	mediaLoad: 0,
+	paused: true
+};
+
 let	videoWidth,
 		videoHeight,
 		videoSizeRatio,
-		video,
 		videoTimelineRatio,
+		video,
 		audio,
 		subtitles;
+
 
 // === Set initial event handlers ===
 magicButton.addEventListener('click', onMagicButtonClick);
@@ -63,36 +91,40 @@ window.addEventListener('resize', onWindowResize);
 // === Handle "Maigc" button click ===
 function onMagicButtonClick(e) {
 	e.preventDefault();
-	if (mediaLoadState < 5) {
+
+	if (state.mediaLoad < 5) {
 		alert('Вы что-то забыли :)');
 		return;
 
-	} else if (mediaLoadState < 6) {
+	} else if (state.mediaLoad < 6) {
 		setTimeout(onMagicButtonClick.bind(this, e), 400);
 		document.querySelector('#popup .popup').style.opacity = '0.5';
 		return;
 
 	}
+	player.appendChild(canvas);
 
 	canvas.width = videoWidth;
 	canvas.height = videoHeight;
+
+	backCanvas.width = videoWidth;
+	backCanvas.height = videoHeight;
 	ctx.fillStyle = canvasBgColor;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	player.appendChild(ui.block);
-	player.appendChild(canvas);
 
 	document.querySelector('#popup').remove();
 }
 
 function onPlayPause(e) {
 	if (video.paused || video.ended) {
+		state.paused = false;
 		video.play();
-		scratches.play();
 		audio.play();
 		ui.play.classList.remove('paused');
 	} else {
+		state.paused = true;
 		video.pause();
-		scratches.pause();
 		audio.pause();
 		ui.play.classList.add('paused');
 	}
@@ -106,28 +138,26 @@ function onInputChange(type, e) {
 
 	if (type === 'subtitles') {
 		reader.readAsText(e.target.files[0]);
-		mediaLoadState++;
+		state.mediaLoad++;
 		reader.onloadend = (e) => {		
 			subtitles = parseSrt(reader.result);
-			mediaLoadState++;
+			state.mediaLoad++;
 		}
 
 	} else if (type === 'audio') {
 		reader.readAsDataURL(e.target.files[0]);
-		mediaLoadState++;
+		state.mediaLoad++;
 		reader.onloadend = (e) => {		
 			audio = createAudio(reader.result);
-			// popup.appendChild(audio);
-			// audio.controls = true;
-			mediaLoadState++;
+			state.mediaLoad++;
 		}
 
 	} else if (type === 'video') {
 		reader.readAsDataURL(e.target.files[0]);
-		mediaLoadState++;
+		state.mediaLoad++;
 		reader.onloadend = (e) => {		
 			video = createVideo(reader.result);
-			mediaLoadState++;
+			state.mediaLoad++;
 		}
 
 	}
@@ -170,34 +200,36 @@ function createVideo(src) {
 	let video = document.createElement('video');
 	video.src = src;
 	video.autoplay = false;
-	video.controls = true;
+	video.controls = false;
 	video.defaultMuted = true;
 	video.style.visibility = 'hidden';
 
 	video.addEventListener('play', onVideoPlay, false);
-	video.addEventListener('pause', onVideoPause, false);
+	
 	video.addEventListener('loadeddata', (e) => {
 		document.querySelector('body').appendChild(video);
-		videoWidth = video.clientWidth;
-		videoHeight = video.clientHeight;
-		videoSizeRatio = videoWidth / videoHeight;
-		// console.dir(videoSizeRatio);
+				
+		// videoWidth = video.clientWidth;
+		// videoHeight = video.clientHeight;
+		videoSizeRatio = video.clientWidth / video.clientHeight;
+		videoWidth = parseInt(getComputedStyle(player).width).toFixed();
+		videoHeight = videoWidth / videoSizeRatio;
+		
 		video.style.display = 'none';
 		videoTimelineRatio = video.duration / 100;
 
 		subtitleStyles.padding = videoWidth * subtitleStyles.paddingRatio;
 		subtitleStyles.fontSize = videoHeight * subtitleStyles.fontRatio;
 		subtitleStyles.lineInterval = subtitleStyles.fontSize * subtitleStyles.lineIntervalRatio;
-		// console.dir(subtitleStyles);
+		
 	});
 
 	video.addEventListener('timeupdate', (e) => {
 		let time = (e.target.currentTime * 1000).toFixed();
-		if (time >= subtitles[subtitleIndex].endTime) {
-			// console.log( 'Let\'s show subtitles! Time: ' + time );
-			isSubtitleShown = true;
-			showSubtitle(subtitles[subtitleIndex]);
-			setTimeout(hideSubtitle, subtitles[subtitleIndex].timeLength);
+		if (time >= subtitles[state.subtitleIndex].endTime) {
+			state.subtitleShown = true;
+			video.pause();
+			state.subtitleTimer = setTimeout(hideSubtitle, subtitles[state.subtitleIndex].timeLength);
 		}
 		
 	});
@@ -233,11 +265,11 @@ function createUI() {
 
 	ui.stop.addEventListener('click', (e) => {
 		video.pause();
-		scratches.pause();
+		// scratches.pause();
 		audio.pause();
 		video.currentTime = 0;
 		audio.currentTime = 0;
-		subtitleIndex = 0;
+		state.subtitleIndex = 0;
 		ui.play.classList.add('paused');
 		ui.timeline.value = 0;
 	});
@@ -266,16 +298,8 @@ function createUI() {
 
 // === Process video.play() ===
 function onVideoPlay(e) {
-	scratches.play();
-	drawVideo(video, scratches, canvas, backCanvas, videoWidth, videoHeight);
-	drawScratches(scratches, canvas, videoWidth, videoHeight);
+	drawVideo(video, canvas, backCanvas, videoWidth, videoHeight);
 	audio.play();
-}
-
-// === Process video.pause() ===
-function onVideoPause(e) {
-	// video.pause();
-	// audio.pause();
 }
 
 function onVolumeChange(e) {
@@ -293,95 +317,181 @@ function onVolumeChangeEnd(e) {
 }
 
 // === Draw video on canvas with Effects ===
-function drawVideo(video, scratches, canvas, backCanvas, width, height) {
+function drawVideo(video, canvas, backCanvas, width, height) {
 	
-	if (video.paused || video.ended) {
+	if (state.paused || video.ended || state.stopped) {
 		return false;
 	}
 
-	let ctx = canvas.getContext('2d');
-	// let bctx = backCanvas.getContext('2d');
+	const ctx = canvas.getContext('2d');
+	const bctx = backCanvas.getContext('2d');
 
-	// bctx.clearRect(0, 0, backCanvas.width, backCanvas.height);
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	// requestAnimationFrame(() => {
 
-	requestAnimationFrame(() => {
+		if (!video.paused && !state.subtitleShown) {
+			bctx.clearRect(0, 0, width, height);
+			ctx.clearRect(0, 0, width, height);
+			
+			bctx.drawImage(video, 0, 0, width, height);
+			let imgData = bctx.getImageData(0, 0, width, height);
+			let data = imgData.data;
+			let brightnessRatio = getRandomInt(
+				100 - 100*brightnessDiffRatio,
+				100 + 100*brightnessDiffRatio) / 100;
+
+			for (let i = 0; i < data.length; i+=4) {
+				let grainRatio = getRandomInt(
+					100 - 100*grainDiffRatio,
+					100 + 100*grainDiffRatio) / 100;
+
+				let r = data[i];
+				let g = data[i+1];
+				let b = data[i+2];
+
+				let avg = ((0.21 * r) + (0.72 * g) + (0.07 * b)) * brightnessRatio * grainRatio;
+
+				data[i] = avg + 15 * grainRatio;
+				data[i+1] = avg + 10 * grainRatio;
+				data[i+2] = avg;
+			}
+
+			ctx.putImageData(imgData, 0, 0);
+		}
 		
-		ctx.drawImage(video, 0, 0, width, height);
-		let imgData = ctx.getImageData(0, 0, width, height);
-		let data = imgData.data;
-
-		for (let i = 0; i < data.length; i+=4) {
-			let r = data[i];
-			let g = data[i+1];
-			let b = data[i+2];
-
-			let avg = ((0.21 * r) + (0.72 * g) + (0.07 * b)) * 3;
-
-			data[i] = avg;
-			data[i+1] = avg;
-			data[i+2] = avg;
+		if (state.subtitleShown) {
+			showSubtitle(subtitles[state.subtitleIndex]);
 		}
 
-		ctx.putImageData(imgData, 0, 0);
-		
-	});
-	
+	// });
 
-	setTimeout(drawVideo, 20, video, scratches, canvas, backCanvas, videoWidth, videoHeight);
-}
-
-function drawScratches(scrchVideo, canvas, width, height) {
-	if (scrchVideo.paused || scrchVideo.ended) {
-		return false;
+	if (Math.random() < scratchStyle.frequency) {
+		requestAnimationFrame(() => {
+			drawScratches(canvas);
+		});	
 	}
+	
+	let newFps = 1000 / getRandomInt(minFps, maxFps); // 1000 - ms in s
 
-	let ctx = canvas.getContext('2d');
-
-	requestAnimationFrame(() => {
-		// ctx.clearRect(0, 0, width, height);
-		ctx.globalAlpha = 0.2;
-		ctx.drawImage(scrchVideo, 0, 0, width, height);
-		ctx.globalAplha = 1;
-	});
-
-	setTimeout(drawScratches, 20, scrchVideo, canvas, width, height);
+	setTimeout(drawVideo, newFps, video, canvas, backCanvas, videoWidth, videoHeight);
 }
+
+function drawScratches(canvas) {
+	const ctx = canvas.getContext('2d');
+	const width = canvas.width;
+	const height = canvas.height;
+
+	const amount = Math.floor(getRandomInt(0, 100) - 90); // MAGIC 2
+
+	for (let i = 0; i <= amount; i++) {
+		let scratch = generateSingleScratch(canvas);
+		ctx.strokeStyle = scratch.style;
+		ctx.lineWidth = scratch.width;
+
+		ctx.beginPath();
+		ctx.moveTo(scratch.coords.from.x, scratch.coords.from.y);
+		ctx.lineTo(scratch.coords.to.x, scratch.coords.to.y);
+		ctx.stroke();
+		ctx.closePath();
+	}
+}
+
+function generateSingleScratch(canvas) {
+	const ctx = canvas.getContext('2d');
+	const width = canvas.width;
+	const height = canvas.height;
+
+	// === Generate strokeStyle ===
+	let opacity = getRandomInt(scratchStyle.minOpacity, scratchStyle.maxOpacity) / 100; // MAGIC
+	let gray = getRandomInt(140, 180); // MAGIC
+	let modifiers = {
+		r: getRandomInt(-20, 20),
+		g: getRandomInt(-20, 20),
+		b: getRandomInt(-20, 20)
+	};
+	let color = {
+		r: gray + modifiers.r,
+		g: gray + modifiers.g,
+		b: gray + modifiers.b,
+		a: opacity
+	};
+
+	let strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`;
+
+	// === Generate scratch width ===
+	let lineWidth = getRandomInt(1, 2);
+	
+	// === Generate scratch coords ===
+	// flag = 0 или 2
+	let flagX = 2 * Math.round(Math.random());
+	let flagY = 2 * Math.round(Math.random());
+
+	let length = getRandomInt(height * scratchStyle.minLength / 100,
+														height * scratchStyle.maxLength / 100);
+	let maxX = getRandomInt(0, length);
+	let maxY = Math.sqrt(Math.pow(length, 2) - Math.pow(maxX, 2));
+
+	let startCoords = {
+		x: getRandomInt(0, width),
+		y: getRandomInt(0, height),
+	};
+
+	let endCoords = {
+		x: startCoords.x + maxX - maxX*flagX,
+		y: startCoords.y + maxY - maxY*flagY,
+	};
+
+	let coords = {
+		from: startCoords,
+		to: endCoords
+	};
+
+	return {
+		style: strokeStyle,
+		width: lineWidth,
+		coords: coords
+	};
+
+}
+
 
 function showSubtitle(subtl) {
 
-	if (!isSubtitleShown) {
+	if (!state.subtitleShown) {
 		console.log('Don\'t show :(');
 		return false;
 	}
 
-	// isSubtitleShown = true;
-	video.pause();
-	requestAnimationFrame(() => {
-		ctx.fillStyle = canvasBgColor;
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		ctx.fillStyle = canvasTextColor;
-		ctx.font = `${subtitleStyles.fontSize}px Oranienbaum bold, serif`;
+// rgb(16, 17, 16)
+	let brightnessRatio = getRandomInt(
+		100 - 100*brightnessDiffRatio,
+		100 + 100*brightnessDiffRatio) / 100;
+	let cl = {
+		r: (canvasBgColor.r * brightnessRatio).toFixed(),
+		g: (canvasBgColor.g * brightnessRatio).toFixed(),
+		b: (canvasBgColor.b * brightnessRatio).toFixed()
+	};
+	console.dir(cl);
+	ctx.fillStyle = `rgb(${cl.r}, ${cl.g}, ${cl.b})`;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	ctx.fillStyle = canvasTextColor;
+	ctx.font = `${subtitleStyles.fontSize}px Oranienbaum bold, serif`;
 
-		let fullTextHeight = (subtl.content.length * subtitleStyles.fontSize)
-								 + ((subtl.content.length - 1) * subtitleStyles.lineInterval);
-		let topPadding = (videoHeight - fullTextHeight) / 2;
+	let fullTextHeight = (subtl.content.length * subtitleStyles.fontSize)
+							 + ((subtl.content.length - 1) * subtitleStyles.lineInterval);
+	let topPadding = (videoHeight - fullTextHeight) / 2;
 
-		subtl.content.forEach((el, i) => {
-			let top = topPadding + (subtitleStyles.fontSize * i)
-								+ (subtitleStyles.lineInterval * i);
-			let left = subtitleStyles.padding;
-			ctx.fillText(el, left, top);
-		});
+	subtl.content.forEach((el, i) => {
+		let top = topPadding + (subtitleStyles.fontSize * i)
+							+ (subtitleStyles.lineInterval * i);
+		let left = subtitleStyles.padding;
+		ctx.fillText(el, left, top);
 	});
-
-	setTimeout(showSubtitle, 20, subtl);
 	
 }
 
 function hideSubtitle() {
-	isSubtitleShown = false;
-	subtitleIndex++;
+	state.subtitleShown = false;
+	state.subtitleIndex++;
 	video.play();
 }
 
@@ -443,20 +553,26 @@ function parseSrt(text) {
 
 function onWindowResize(e) {
 	
-	videoWidth = document.documentElement.clientWidth - bodyPadding;
+	videoWidth = parseInt(getComputedStyle(player).width).toFixed();
 	videoHeight = videoWidth / videoSizeRatio;
+
 	canvas.width = videoWidth;
 	canvas.height = videoHeight;
+	backCanvas.width = videoWidth;
+	backCanvas.height = videoHeight;
+
 	subtitleStyles.padding = videoWidth * subtitleStyles.paddingRatio;
 	subtitleStyles.fontSize = videoHeight * subtitleStyles.fontRatio;
 	subtitleStyles.lineInterval = subtitleStyles.fontSize * subtitleStyles.lineIntervalRatio;
-	if (isSubtitleShown) {
-		showSubtitle(subtitles[subtitleIndex]);
-	}
+	// if (state.subtitleShown) {
+	// 	showSubtitle(subtitles[state.subtitleIndex]);
+	// }
 
 }
 
-
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
 
 
 
