@@ -26,6 +26,8 @@ const ui = createUI();
 // Init canvas w/ styles
 const backCanvas = document.createElement('canvas');
 const canvas = document.createElement('canvas');
+backCanvas.setAttribute('crossorigin', 'anonymus');
+canvas.setAttribute('crossorigin', 'anonymus');
 const	ctx = canvas.getContext('2d');
 
 
@@ -90,30 +92,40 @@ window.addEventListener('resize', onWindowResize);
 
 // === Handle "Maigc" button click ===
 function onMagicButtonClick(e) {
+	
 	e.preventDefault();
+	togglePreloader(true);
+	
+	createVideo('http://cors.io/?u=' + videoInput.value)
+		.then((videoEl) => {
+			
+			canvas.width = videoWidth;
+			canvas.height = videoHeight;
 
-	if (state.mediaLoad < 5) {
-		alert('Вы что-то забыли :)');
-		return;
+			backCanvas.width = videoWidth;
+			backCanvas.height = videoHeight;
+			ctx.fillStyle = canvasBgColor;
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			player.appendChild(ui.block);
+			player.appendChild(canvas);
 
-	} else if (state.mediaLoad < 6) {
-		setTimeout(onMagicButtonClick.bind(this, e), 400);
-		document.querySelector('#popup .popup').style.opacity = '0.5';
-		return;
+			video = videoEl;
+			document.querySelector('#popup').remove();
+			togglePreloader(false);
+		}
+	);
+	
+	createAudio('http://cors.io/?u=' + audioInput.value)
+		.then((audioEl) => {
+			audio = audioEl;
+		}
+	);
 
-	}
-	player.appendChild(canvas);
+	fetch(subtitlesInput.value, 'GET')
+		.then((text) => {
+			subtitles = parseSrt(text);
+		});
 
-	canvas.width = videoWidth;
-	canvas.height = videoHeight;
-
-	backCanvas.width = videoWidth;
-	backCanvas.height = videoHeight;
-	ctx.fillStyle = canvasBgColor;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	player.appendChild(ui.block);
-
-	document.querySelector('#popup').remove();
 }
 
 function onPlayPause(e) {
@@ -166,75 +178,90 @@ function onInputChange(type, e) {
 
 // === Process audio from input ===
 function createAudio(src) {
-	let audio = document.createElement('audio');
-	audio.src = src;
-	audio.autoplay = false;
-	audio.volume = 0.5;
+	return new Promise((resolve, reject) => {
+		try {
+			let audio = document.createElement('audio');
+			audio.setAttribute('crossorigin', 'anonymus');
+			// audio.setAttribute('preload', 'true');
+			audio.src = src;
+			audio.autoplay = false;
+			audio.volume = 0.5;
+			audio.addEventListener('loadeddata', (e) => {
+				resolve(audio);
 
-	// audio.addEventListener('canplay', (e) => {
-	// 	// console.dir('Загружено');
-	// 	let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-	// 	let source = audioCtx.createMediaElementSource(audio);
-	// 	let leftPan = audioCtx.createStereoPanner();
-	// 	leftPan.pan.value = -1;
-	// 	// let rightPan = audioCtx.createStereoPanner();
-	// 	// rightPan.pan.value = 1;
+				let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+				let source = audioCtx.createMediaElementSource(audio);
+				let leftPan = audioCtx.createStereoPanner();
+				let rightPan = audioCtx.createStereoPanner();
+				// let gainNode = audioCtx.createGain();
+				leftPan.pan.value = -1;
+				// rightPan.pan.value = 1;
 
-	// 	let gainNode = audioCtx.createGain();
+				source.connect(rightPan);
+				source.connect(leftPan);
+				// leftPan.connect(gainNode);
+				leftPan.connect(audioCtx.destination);
+				// rightPan.connect(audioCtx.destination);
 
+				// source.connect(audioCtx.destination);
+			});
+		} catch(e) {
+			reject(e);
+		}
 		
-	// 	source.connect(gainNode);
-	// 	// source.connect(rightPan);
-	// 	// leftPan.connect(gainNode);
-	// 	gainNode.connect(audioCtx.destination);
-
-	// 	// source.connect(audioCtx.destination);
-	// });
+	});
 	
 
-	return audio;
+	audio.addEventListener('canplay', (e) => {
+
+	});
+
 }
 
 // === Process video from input ===
 function createVideo(src) {
-	let video = document.createElement('video');
-	video.src = src;
-	video.autoplay = false;
-	video.controls = false;
-	video.defaultMuted = true;
-	video.style.visibility = 'hidden';
+	return new Promise((resolve, reject) => {
+		let video = document.createElement('video');
+		video.setAttribute('crossorigin', 'anonymus');
+		video.setAttribute('preload', 'true');
+		video.src = src;
+		video.autoplay = false;
+		video.controls = false;
+		video.defaultMuted = true;
+		video.style.visibility = 'hidden';
 
-	video.addEventListener('play', onVideoPlay, false);
+		video.addEventListener('play', onVideoPlay, false);
+		
+		video.addEventListener('loadeddata', (e) => {
+			document.querySelector('body').appendChild(video);
+
+			videoSizeRatio = video.clientWidth / video.clientHeight;
+			videoWidth = parseInt(getComputedStyle(player).width).toFixed();
+			videoHeight = videoWidth / videoSizeRatio;
+			
+			video.style.display = 'none';
+			videoTimelineRatio = video.duration / 100;
+
+			subtitleStyles.padding = videoWidth * subtitleStyles.paddingRatio;
+			subtitleStyles.fontSize = videoHeight * subtitleStyles.fontRatio;
+			subtitleStyles.lineInterval = subtitleStyles.fontSize * subtitleStyles.lineIntervalRatio;
+			resolve(video);
+			
+		});
+
+		video.addEventListener('timeupdate', (e) => {
+			let time = (e.target.currentTime * 1000).toFixed();
+			if (time >= subtitles[state.subtitleIndex].endTime) {
+				state.subtitleShown = true;
+				video.pause();
+				state.subtitleTimer = setTimeout(hideSubtitle, subtitles[state.subtitleIndex].timeLength);
+			}
+			
+		});
+	});
 	
-	video.addEventListener('loadeddata', (e) => {
-		document.querySelector('body').appendChild(video);
-				
-		// videoWidth = video.clientWidth;
-		// videoHeight = video.clientHeight;
-		videoSizeRatio = video.clientWidth / video.clientHeight;
-		videoWidth = parseInt(getComputedStyle(player).width).toFixed();
-		videoHeight = videoWidth / videoSizeRatio;
-		
-		video.style.display = 'none';
-		videoTimelineRatio = video.duration / 100;
 
-		subtitleStyles.padding = videoWidth * subtitleStyles.paddingRatio;
-		subtitleStyles.fontSize = videoHeight * subtitleStyles.fontRatio;
-		subtitleStyles.lineInterval = subtitleStyles.fontSize * subtitleStyles.lineIntervalRatio;
-		
-	});
-
-	video.addEventListener('timeupdate', (e) => {
-		let time = (e.target.currentTime * 1000).toFixed();
-		if (time >= subtitles[state.subtitleIndex].endTime) {
-			state.subtitleShown = true;
-			video.pause();
-			state.subtitleTimer = setTimeout(hideSubtitle, subtitles[state.subtitleIndex].timeLength);
-		}
-		
-	});
-
-	return video;
+	// return video;
 }
 
 // === Init UI for canvas player
@@ -265,7 +292,6 @@ function createUI() {
 
 	ui.stop.addEventListener('click', (e) => {
 		video.pause();
-		// scratches.pause();
 		audio.pause();
 		video.currentTime = 0;
 		audio.currentTime = 0;
@@ -320,11 +346,13 @@ function onVolumeChangeEnd(e) {
 function drawVideo(video, canvas, backCanvas, width, height) {
 	
 	if (state.paused || video.ended || state.stopped) {
+		audio.pause();
 		return false;
 	}
 
 	const ctx = canvas.getContext('2d');
 	const bctx = backCanvas.getContext('2d');
+	const gl = canvas.getContext('webgl');
 
 	// requestAnimationFrame(() => {
 
@@ -372,9 +400,12 @@ function drawVideo(video, canvas, backCanvas, width, height) {
 	
 	let newFps = 1000 / getRandomInt(minFps, maxFps); // 1000 - ms in s
 
-	setTimeout(drawVideo, newFps, video, canvas, backCanvas, videoWidth, videoHeight);
+	setTimeout(() => {
+		requestAnimationFrame(drawVideo.bind(this, video, canvas, backCanvas, videoWidth, videoHeight));
+	}, newFps);
 }
 
+// === Рисование случайного числа случайных царапин ===
 function drawScratches(canvas) {
 	const ctx = canvas.getContext('2d');
 	const width = canvas.width;
@@ -395,12 +426,13 @@ function drawScratches(canvas) {
 	}
 }
 
+// === Генерация одной царапины (но не рисование) ===
 function generateSingleScratch(canvas) {
 	const ctx = canvas.getContext('2d');
 	const width = canvas.width;
 	const height = canvas.height;
 
-	// === Generate strokeStyle ===
+	// === Генерация цвета царапины ===
 	let opacity = getRandomInt(scratchStyle.minOpacity, scratchStyle.maxOpacity) / 100; // MAGIC
 	let gray = getRandomInt(140, 180); // MAGIC
 	let modifiers = {
@@ -417,13 +449,13 @@ function generateSingleScratch(canvas) {
 
 	let strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`;
 
-	// === Generate scratch width ===
+	// === Генерация толщины царапины ===
 	let lineWidth = getRandomInt(1, 2);
 	
-	// === Generate scratch coords ===
-	// flag = 0 или 2
-	let flagX = 2 * Math.round(Math.random());
-	let flagY = 2 * Math.round(Math.random());
+	// === Генерация координат царапины ===
+	// flag = -1 или 1
+	let flagX = 2 * Math.round(Math.random()) - 1;
+	let flagY = 2 * Math.round(Math.random()) - 1;
 
 	let length = getRandomInt(height * scratchStyle.minLength / 100,
 														height * scratchStyle.maxLength / 100);
@@ -436,8 +468,8 @@ function generateSingleScratch(canvas) {
 	};
 
 	let endCoords = {
-		x: startCoords.x + maxX - maxX*flagX,
-		y: startCoords.y + maxY - maxY*flagY,
+		x: startCoords.x + maxX*flagX,
+		y: startCoords.y + maxY*flagY,
 	};
 
 	let coords = {
@@ -453,11 +485,10 @@ function generateSingleScratch(canvas) {
 
 }
 
-
+// === Показать кадр с субтитрами ===
 function showSubtitle(subtl) {
 
 	if (!state.subtitleShown) {
-		console.log('Don\'t show :(');
 		return false;
 	}
 
@@ -470,7 +501,6 @@ function showSubtitle(subtl) {
 		g: (canvasBgColor.g * brightnessRatio).toFixed(),
 		b: (canvasBgColor.b * brightnessRatio).toFixed()
 	};
-	console.dir(cl);
 	ctx.fillStyle = `rgb(${cl.r}, ${cl.g}, ${cl.b})`;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	ctx.fillStyle = canvasTextColor;
@@ -495,7 +525,7 @@ function hideSubtitle() {
 	video.play();
 }
 
-// === Parse .SRT to Array of subtitles ===
+// === Распарсить .SRT в Массив субтитров ===
 function parseSrt(text) {
 	let timeConst = {
 		sec: 1000,
@@ -532,14 +562,6 @@ function parseSrt(text) {
 
 		res.timeLength = endTime - startTime;
 
-		// res.content = subtitle.reduce((prev, el, i) => {
-		// 	if (i > 1) {
-		// 		return prev + el + '\n';
-		// 	} else {
-		// 		return '';
-		// 	}
-		// });
-
 		// === Join subtitle content ===
 		subtitle.splice(0, 2);
 		res.content = subtitle;
@@ -551,6 +573,7 @@ function parseSrt(text) {
 
 }
 
+// === Перенастройка всего при resize страницы ===
 function onWindowResize(e) {
 	
 	videoWidth = parseInt(getComputedStyle(player).width).toFixed();
@@ -564,43 +587,142 @@ function onWindowResize(e) {
 	subtitleStyles.padding = videoWidth * subtitleStyles.paddingRatio;
 	subtitleStyles.fontSize = videoHeight * subtitleStyles.fontRatio;
 	subtitleStyles.lineInterval = subtitleStyles.fontSize * subtitleStyles.lineIntervalRatio;
-	// if (state.subtitleShown) {
-	// 	showSubtitle(subtitles[state.subtitleIndex]);
-	// }
 
 }
 
+// === Показать / скрыть прелоадер ===
+function togglePreloader(state) {
+
+	let preloader = document.querySelectorAll('.preloader')[0];
+	if (state === true) {
+		preloader.classList.add('shown');
+	} else if (state === false) {
+		preloader.classList.remove('shown');
+	} else {
+		preloader.classList.toggle('shown');
+	}
+
+}
+
+// === Обёртка для XHR с использованием Promise ===
+function fetch(url, method) {
+	method = method || 'GET';
+
+	return new Promise((resolve, reject) => {
+		
+		let xhr = new XMLHttpRequest();
+		xhr.open(method, url, true);
+		xhr.responseType = 'text';
+
+		xhr.onreadystatechange = (e) => {
+
+			if (xhr.readyState === 4) {
+				if (xhr.status !== 200) {
+					reject(xhr.responseText);
+				} else {
+					resolve(xhr.responseText);
+				}
+			}
+
+		}
+
+		xhr.send();
+
+	});
+}
+
+// === Получить случайное число от min до max ===
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
 
 
-// TODO CORS xhr
-function download(mime, url) {
-	// console.log('inside');
-	let xhr = new XMLHttpRequest();
-
-	xhr.open('GET', url, true);
-	xhr.withCredentials = true;
-	xhr.responseTye = 'blob';
 
 
-	xhr.onload = (e) => {
-		if (this.status === 200) {
-			let blob = new Blob(
-				[this.response],
-				{
-					type: mime
-				}
-			);
+// function prepareWebGL(canvas, gl, sourceCanvas) {
+//     var program = gl.createProgram();
 
-			// console.dir(blob);
+//     var vertexCode = 'attribute vec2 coordinates;' +
+//         'attribute vec2 texture_coordinates;' +
+//         'varying vec2 v_texcoord;' +
+//         'void main() {' +
+//         '  gl_Position = vec4(coordinates,0.0, 1.0);' +
+//         '  v_texcoord = texture_coordinates;' +
+//         '}';
 
-		}
-	};
+//     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+//     gl.shaderSource(vertexShader, vertexCode);
+//     gl.compileShader(vertexShader);
 
-	xhr.send();
-}
+//     var fragmentCode = 'precision mediump float;' +
+//         'varying vec2 v_texcoord;' +
+//         'uniform sampler2D u_texture;' +
+//         'uniform float u_time;' +
+//         'float rand(vec2 co){' +
+//         '   return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);' +
+//         '}' +
+//         'void main() {' +
+//         '   gl_FragColor = texture2D(u_texture, v_texcoord) * .8 + texture2D(u_texture, v_texcoord) * rand(v_texcoord * u_time) * .2;' +
+//         '}';
 
-// loadMedia('video/mp4', urls.video);
+//     var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+//     gl.shaderSource(fragmentShader, fragmentCode);
+//     gl.compileShader(fragmentShader);
+
+//     gl.attachShader(program, vertexShader);
+//     gl.attachShader(program, fragmentShader);
+
+//     gl.linkProgram(program);
+//     gl.useProgram(program);
+
+//     var positionLocation = gl.getAttribLocation(program, 'coordinates');
+//     var texcoordLocation = gl.getAttribLocation(program, 'texture_coordinates');
+//     GL_TIME_UNIFORM = gl.getUniformLocation(program, 'u_time');
+
+//     var buffer = gl.createBuffer();
+//     var vertices = [
+//         -1, -1,
+//         1, -1,
+//         -1, 1,
+//         -1, 1,
+//         1, -1,
+//         1, 1
+//     ];
+//     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+//     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+//     gl.enableVertexAttribArray(positionLocation);
+//     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+//     buffer = gl.createBuffer();
+//     var textureCoordinates = [
+//         0, 1,
+//         1, 1,
+//         0, 0,
+//         0, 0,
+//         1, 1,
+//         1, 0
+//     ];
+//     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+//     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
+//     gl.enableVertexAttribArray(texcoordLocation);
+//     gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
+// }
+
+
+// function postprocessWebGL(canvas, gl, sourceCanvas, delta) {
+//     GL_TIME += delta;
+//     gl.uniform1f(GL_TIME_UNIFORM, GL_TIME / 1000);
+//     var texture = gl.createTexture();
+//     gl.bindTexture(gl.TEXTURE_2D, texture);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+//     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sourceCanvas);
+
+//     gl.viewport(0,0,canvas.width,canvas.height);
+//     gl.enable(gl.DEPTH_TEST);
+//     gl.clear(gl.COLOR_BUFFER_BIT);
+//     gl.drawArrays(gl.TRIANGLES, 0, 6);
+// }
