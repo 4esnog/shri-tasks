@@ -1,21 +1,169 @@
 'use strict';
 
-// Get existing DOM nodes
+class UI {
+	constructor() {
+		this.block = document.createElement('div');
+		this.play = document.createElement('div');
+		this.stop = document.createElement('div');
+		this.volume = document.createElement('input');
+
+		this.block.classList.add('player-ui');
+		this.block.appendChild(this.play);
+		this.block.appendChild(this.stop);
+		this.block.appendChild(this.volume);
+
+		this.play.classList.add('player-ui__el', 'player-ui__el_play-pause', 'paused');
+		this.stop.classList.add('player-ui__el', 'player-ui__el_stop');
+		this.volume.setAttribute('type', 'range');
+		this.volume.setAttribute('touch-action', 'none');
+		this.volume.classList.add('player-ui__el', 'player-ui__el_volume');
+
+		this.play.addEventListener('click', onPlayPause);
+		this.stop.addEventListener('click', onStop);
+		this.volume.addEventListener('pointerdown', (e) => {
+			e.target.addEventListener('pointermove', onVolumeChange);
+			e.target.addEventListener('pointerup', onVolumeChangeEnd);
+		});
+
+		this.volume.addEventListener('click', (e) => {
+			audio.volume = e.target.value / 100;
+			if (audio.volume === 0) {
+				e.target.classList.add('muted');
+			} else {
+				e.target.classList.remove('muted');
+			}
+		});
+	}
+
+	appendTo(node) {
+		node.appendChild(this.block);
+	}
+}
+
+class Subtitles {
+	constructor(text, styles) {
+		this.collection = Subtitles.parseSrt(text);
+		this.startTime = null;
+		this.endTime = null;
+		this.shown = false;
+		this.index = 0;
+		this.timer = 0;
+		this.fontRatio = styles.fontRatio;
+		this.paddingRatio = styles.paddingRatio;
+		this.lineIntervalRatio = styles.lineIntervalRatio;
+	}
+
+	// === Парсер субтитров ===
+	static parseSrt(text) {
+		let timeConst = {
+			sec: 1000,
+			min: 60,
+			hr: 60
+		};
+		let temp = text.split('\n\n');
+
+		let result = temp.map((el) => {
+
+			let res = {};
+			let subtitle = el.split('\n');
+
+			// === Получаем номер куска титров ===
+			res.number = parseInt(subtitle[0]);
+
+			let time = subtitle[1].split(' --> ');
+
+			// === Преобразуем время начала показа куска субтитров в MS ===
+			let startTime = time[0].split(':');
+			let startTimeSec = parseInt(startTime[2].split(',').join(''));
+			let startTimeMin = parseInt(startTime[1]) * timeConst.min * timeConst.sec;
+			let startTimeHr = parseInt(startTime[0]) * timeConst.hr * timeConst.min * timeConst.sec;
+			startTime = startTimeSec + startTimeMin	+ startTimeHr;
+			res.startTime = startTime;
+
+			// === Преобразуем время конца показа куска субтитров в MS ===
+			let endTime = time[1].split(':');
+			let endTimeSec = parseInt(endTime[2].split(',').join(''));
+			let endTimeMin = parseInt(endTime[1]) * timeConst.min * timeConst.sec;
+			let endTimeHr = parseInt(endTime[0]) * timeConst.hr * timeConst.min * timeConst.sec;
+			endTime = endTimeSec + endTimeMin	+ endTimeHr;
+			res.endTime = endTime;
+
+			res.timeLength = endTime - startTime;
+
+			// === Готовим основной контент субтитров ===
+			subtitle.splice(0, 2);
+			res.content = subtitle;
+
+			return res;
+		});
+
+		return result;
+	}
+
+	// === Показ кадра с субтитрами ===
+	show(subtl) {
+		if (!this.shown) {
+			return false;
+		}
+
+		// === Случайная яркость кадра (как для кадра видео) ===
+		let brightnessRatio = getRandomInt(
+			100 - 100*brightnessDiffRatio,
+			100 + 100*brightnessDiffRatio) / 100;
+		let cl = {
+			r: (canvasBgColor.r * brightnessRatio).toFixed(),
+			g: (canvasBgColor.g * brightnessRatio).toFixed(),
+			b: (canvasBgColor.b * brightnessRatio).toFixed()
+		};
+		// === Рисуем фон ===
+		ctx.fillStyle = `rgb(${cl.r}, ${cl.g}, ${cl.b})`;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+		// === Готовим текст ===
+		ctx.fillStyle = canvasTextColor;
+		ctx.font = `${this.fontSize}px \'Oranienbaum\'`;
+
+		// === Считаем, где рисовать ===
+		let fullTextHeight = (subtl.content.length * this.fontSize)
+			+ ((subtl.content.length - 1) * this.lineInterval);
+		let topPadding = (videoHeight - fullTextHeight) / 2;
+
+		// === Рисуем текст построчно ===
+		subtl.content.forEach((el, i) => {
+			let top = topPadding + (this.fontSize * i)
+				+ (this.lineInterval * i);
+			let left = this.padding;
+			ctx.fillText(el, left, top);
+			
+		});
+	}
+
+	hide() {
+		this.startTime = null;
+		this.endTime = null;
+		this.shown = false;
+		this.index++;
+		video.play();
+	}
+
+}
+
+// === Получаем уже присутствующие узлы DOM ===
 const magicButton = document.getElementById('magic-button');
 const videoInput = document.getElementById('video');
 const audioInput = document.getElementById('audio');
 const subtitlesInput = document.getElementById('subtitles');
 const player = document.getElementById('player');
+const scratches = document.getElementById('scratches');
 
-// Init player UI
-const ui = createUI();
-
-// Init canvas w/ styles
+// === Инициализируем основной и вспомогательный canvas ===
 const backCanvas = document.createElement('canvas');
 const canvas = document.createElement('canvas');
 backCanvas.setAttribute('crossorigin', 'anonymus');
 canvas.setAttribute('crossorigin', 'anonymus');
 const	ctx = canvas.getContext('2d');
+
+const ui = new UI();
 
 
 let bodyStyle = getComputedStyle(document.querySelectorAll('body')[0]);
@@ -30,18 +178,17 @@ const canvasBgColor = {
 	hex: "#101410"
 };
 const canvasTextColor = '#e1e8e2'; // Цвет текста субтитров
-const brightnessDiffRatio = 0.2; // Коэффициент разброса яркости кадров
-const grainDiffRatio = 0.15; // Коэффициент зернистости (шума)
-const minFps = 18;
-const maxFps = 26;
+const brightnessDiffRatio = 0.3;   // Коэффициент разброса яркости кадров
+const grainDiffRatio = 0.15;       // Коэффициент зернистости (шума)
+const minFps = 20;
+const maxFps = 40;
 const scratchStyle = {
-	minLength: 5,    // Длина и прозрачность царапин,
-	maxLength: 20,   // в % от высоты видео (от 0 до 100)
-	minOpacity: 30,  // 0 .. 100
-	maxOpacity: 90,  // 0 .. 100
-	frequency: 0.75, // 0 .. 1
+	minLength: 5,										 // Длина и прозрачность царапин,
+	maxLength: 20,   								 // в % от высоты видео (от 0 до 100)
+	minOpacity: 30,  								 // 0 .. 100
+	maxOpacity: 90,  								 // 0 .. 100
+	frequency: 0.75, 								 // 0 .. 1
 }
-// const downsampleRatio = 5;
 const subtitleStyles = {
 	fontRatio: 0.055,
 	paddingRatio: 0.1,
@@ -54,9 +201,6 @@ const audioBufferSize = 512;
 
 let state = {
 	paused: true,
-	subtitleShown: false,
-	subtitleIndex: 0,
-	subtitleTimer: 0,
 	mediaLoad: 0,
 };
 
@@ -71,100 +215,111 @@ let	videoWidth,
 		audioApi = {};
 
 
-// === Set initial event handlers ===
+// === Первоначальные обработчики ===
 magicButton.addEventListener('click', onMagicButtonClick);
 canvas.addEventListener('click', onPlayPause);
 window.addEventListener('resize', onWindowResize);
 
 
-// === Helpers ===
 
-// === Handle "Maigc" button click ===
+// === Начинаем магию по клику кнопки "Заглушить" ===
 function onMagicButtonClick(e) {
 	
 	e.preventDefault();
 	togglePreloader(true);
 	
-	createVideo('http://cors.io/?u=' + videoInput.value)
-		.then((videoEl) => {
-			
-			canvas.width = videoWidth;
-			canvas.height = videoHeight;
+	// === Асинхронно грузим видео, аудио и субтитры ===
+	Promise.all([
+		createVideo('http://cors.io/?u=' + videoInput.value),
+		createAudio('http://cors.io/?u=' + audioInput.value),
+		fetch(subtitlesInput.value, 'GET')
+	]).then(res => {
 
-			backCanvas.width = videoWidth;
-			backCanvas.height = videoHeight;
-			ctx.fillStyle = canvasBgColor;
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
-			player.appendChild(ui.block);
-			player.appendChild(canvas);
+		// === Настраиваем canvas ===
+		canvas.width = videoWidth;
+		canvas.height = videoHeight;
+		backCanvas.width = videoWidth;
+		backCanvas.height = videoHeight;
 
-			video = videoEl;
-			document.querySelector('#popup').remove();
-			togglePreloader(false);
-		}
-	);
-	
-	createAudio('http://cors.io/?u=' + audioInput.value)
-		.then((audioEl) => {
-			audio = audioEl;
-		}
-	);
+		ctx.fillStyle = canvasBgColor;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		
+		// === Добавляем UI и canvas на плеер ===
+		ui.appendTo(player);
+		player.appendChild(canvas);
 
-	fetch(subtitlesInput.value, 'GET')
-		.then((text) => {
-			subtitles = parseSrt(text);
-		});
+		video = res[0];
+		audio = res[1];
+		subtitles = new Subtitles(res[2], subtitleStyles);
+
+		// === Рассчитываем размеры и отступы для показа субтитров ===
+		subtitles.padding = videoWidth * subtitles.paddingRatio;
+		subtitles.fontSize = (videoHeight * subtitles.fontRatio).toFixed();
+		subtitles.lineInterval = subtitles.fontSize * subtitles.lineIntervalRatio;
+
+		document.querySelector('#popup').remove();
+		togglePreloader(false);
+
+	}).catch(err => {
+		console.dir(err);
+	});
 
 }
 
+// === Обработка паузы / запуска видео ===
 function onPlayPause(e) {
 	if (state.paused || video.ended) {
-		// video.play();
 		state.paused = false;
 		state.stopped = false;
 		audio.play();
-		if (state.subtitleShown) {
-			// video.pause();
+    scratches.play();
+
+		if (subtitles.shown) {
 			drawVideo(video, canvas, backCanvas, videoWidth, videoHeight);
-			state.subtitleTimer = setTimeout(hideSubtitle, subtitles[state.subtitleIndex].timeLength);
-			console.dir('Resume subtitles');
+			subtitles.timer = setTimeout(
+				() => {subtitles.hide()},
+				subtitles.collection[subtitles.index].timeLength
+			);
 		} else {
 			video.play();
-			console.dir('Resume without subtitles');
 		}
+
 		audioApi.mainGainNode.connect(audioApi.ctx.destination);
 		ui.play.classList.remove('paused');
 
 	} else {
 		state.paused = true;
-		if (state.subtitleShown) {
-			clearInterval(state.subtitleTimer);
-			state.subtitleEndTime = performance.now();
-			state.subtitleShownTime = (state.subtitleEndTime - state.subtitleStartTime).toFixed();
-			state.subtitleRestTime = subtitles[state.subtitleIndex].timeLength - state.subtitleShownTime;
+
+		if (subtitles.shown) {
+			clearTimeout(subtitles.timer);
+			subtitles.endTime = performance.now();
+			subtitles.shownTime = (subtitles.endTime - subtitles.startTime).toFixed();
+			subtitles.restTime = subtitles.collection[subtitles.index].timeLength - subtitles.shownTime;
 		}
 
 		video.pause();
+    scratches.pause();
 		audio.pause();
 		audioApi.mainGainNode.disconnect();
 		ui.play.classList.add('paused');
 	}
 }
 
+// === Обработка нажатия кнопки "стоп" ===
 function onStop(e) {
 		state.stopped = true;
-		clearTimeout(state.subtitleTimer);
+		clearTimeout(subtitles.timer);
 		video.pause();
+    scratches.pause();
 		audio.pause();
 		audioApi.mainGainNode.disconnect();
 		video.currentTime = 0;
 		audio.currentTime = 0;
-		state.subtitleIndex = 0;
+		subtitles.index = 0;
 		ui.play.classList.add('paused');
-		// ui.timeline.value = 0;
 	}
 
-// === Process audio from input ===
+// === Загрузка и настройка аудио ===
 function createAudio(src) {
 	return new Promise((resolve, reject) => {
 		try {
@@ -174,14 +329,15 @@ function createAudio(src) {
 			audio.autoplay = false;
 			audio.addEventListener('loadeddata', (e) => {
 
+				// === Добавляем шумы к видео, используя Web Audio API ===
 				audioApi.ctx = new (window.AudioContext || window.webkitAudioContext)();
 				audioApi.source = audioApi.ctx.createMediaElementSource(audio);
 				audioApi.mainGainNode = audioApi.ctx.createGain();
 				audioApi.mainGainNode.gain.value = 0.5;
 
-				audioApi.pinkNoise = audioApi.ctx.createScriptProcessor(audioBufferSize / 2, 1, 1);
+				audioApi.whiteNoise = audioApi.ctx.createScriptProcessor(audioBufferSize / 2, 1, 1);
 
-				audioApi.pinkNoise.onaudioprocess = function(e) {
+				audioApi.whiteNoise.onaudioprocess = function(e) {
 
 					for (let ch = 0; ch < e.outputBuffer.numberOfChannels; ch++) {
 						let inputData = e.inputBuffer.getChannelData(ch);
@@ -189,14 +345,14 @@ function createAudio(src) {
 
 						for (let i = 0; i < e.inputBuffer.length; i++) {
 							let white = Math.random() * 2 - 1;
-							outputData[i] = inputData[i] + white * 0.03;
+							outputData[i] = inputData[i] + white * 0.08;
 						}
 					}
 
 				}
 
 				audioApi.source.connect(audioApi.mainGainNode);
-				audioApi.pinkNoise.connect(audioApi.mainGainNode);
+				audioApi.whiteNoise.connect(audioApi.mainGainNode);
 
 				setInterval(() => {
 					audioApi.mainGainNode.gain.value += getRandomInt(
@@ -205,7 +361,6 @@ function createAudio(src) {
 				}, 200);
 
 				resolve(audio);
-				
 			});
 
 		} catch(e) {
@@ -213,12 +368,10 @@ function createAudio(src) {
 			reject(e);
 		
 		}
-		
 	});
-
 }
 
-// === Process video from input ===
+// === Загрузка и настройка видео ===
 function createVideo(src) {
 	return new Promise((resolve, reject) => {
 		try {
@@ -243,24 +396,23 @@ function createVideo(src) {
 				videoTimelineRatio = video.duration / 100;
 				
 				video.style.display = 'none';
-
-				subtitleStyles.padding = videoWidth * subtitleStyles.paddingRatio;
-				subtitleStyles.fontSize = videoHeight * subtitleStyles.fontRatio;
-				subtitleStyles.lineInterval = subtitleStyles.fontSize * subtitleStyles.lineIntervalRatio;
 				
 				resolve(video);
 			});
 
+			// === Обработчик timeupdate проверяет, нужно ли рисовать субтитры ===
 			video.addEventListener('timeupdate', (e) => {
 				let time = (e.target.currentTime * 1000).toFixed();
-				if ((time >= subtitles[state.subtitleIndex].endTime) && !state.paused) {
-					state.subtitleShown = true;
-					state.subtitleStartTime = performance.now();
-					console.log('Start subtitles: ', state.subtitleStartTime);
+				if ((time >= subtitles.collection[subtitles.index].endTime)
+					  && !state.paused
+					  && !subtitles.shown) {
+
 					video.pause();
-					state.subtitleTimer = setTimeout(hideSubtitle, subtitles[state.subtitleIndex].timeLength);
+					subtitles.shown = true;
+					subtitles.startTime = performance.now();
+					subtitles.timer = setTimeout(() => {subtitles.hide()}, subtitles.collection[subtitles.index].timeLength);
+					
 				}
-				
 			});
 
 		} catch(e) {
@@ -268,68 +420,16 @@ function createVideo(src) {
 			reject(e);
 		
 		}
-		
 	});
-
 }
 
-// === Init UI for canvas player
-function createUI() {
-	let ui = {
-		block: document.createElement('div'),
-		play: document.createElement('div'),
-		stop: document.createElement('div'),
-		// timeline: document.createElement('input'),
-		volume: document.createElement('input')
-	};
-	ui.block.classList.add('player-ui');
-	ui.block.appendChild(ui.play);
-	ui.block.appendChild(ui.stop);
-	// ui.block.appendChild(ui.timeline);
-	ui.block.appendChild(ui.volume);
 
-	ui.play.classList.add('player-ui__el', 'player-ui__el_play-pause', 'paused');
-	ui.stop.classList.add('player-ui__el', 'player-ui__el_stop');
-	// ui.timeline.setAttribute('type', 'range');
-	// ui.timeline.classList.add('player-ui__el', 'player-ui__el_timeline');
-	// ui.timeline.value = 0;
-	ui.volume.setAttribute('type', 'range');
-	ui.volume.setAttribute('touch-action', 'none');
-	ui.volume.classList.add('player-ui__el', 'player-ui__el_volume');
-
-	ui.play.addEventListener('click', onPlayPause);
-
-	ui.stop.addEventListener('click', onStop);
-
-	// ui.timeline.addEventListener('change', (e) => {
-	// 	video.currentTime = parseInt(e.target.value) * videoTimelineRatio;
-	// 	audio.currentTime = video.currentTime;
-	// });
-
-	ui.volume.addEventListener('pointerdown', (e) => {
-		e.target.addEventListener('pointermove', onVolumeChange);
-		e.target.addEventListener('pointerup', onVolumeChangeEnd);
-	});
-
-	ui.volume.addEventListener('click', (e) => {
-		audio.volume = e.target.value / 100;
-		if (audio.volume === 0) {
-			e.target.classList.add('muted');
-		} else {
-			e.target.classList.remove('muted');
-		}
-	});
-
-	return ui;
-}
-
-// === Process video.play() ===
+// === Запускаем отрисовку видео на canvas ===
 function onVideoPlay(e) {
 	drawVideo(video, canvas, backCanvas, videoWidth, videoHeight);
 }
 
 function onVolumeChange(e) {
-	// audio.volume = parseInt(e.target.value) / 100;
 	audioApi.mainGainNode.gain.value = parseInt(e.target.value) / 100;
 	
 	if (audio.volume === 0) {
@@ -351,54 +451,58 @@ function drawVideo(video, canvas, backCanvas, width, height) {
 		audio.pause();
 		return false;
 	}
-
+	
 	const ctx = canvas.getContext('2d');
 	const bctx = backCanvas.getContext('2d');
 
-	if (!video.paused && !state.subtitleShown) {
+	// === Обработка и рисование видео ===
+	if (!video.paused && !subtitles.shown) {
+		
+		// === Чистим холсты ===
 		bctx.clearRect(0, 0, width, height);
 		ctx.clearRect(0, 0, width, height);
-		
-		bctx.drawImage(video, 0, 0, width, height);
-		let imgData = bctx.getImageData(0, 0, width, height);
-		let data = imgData.data;
-		let brightnessRatio = getRandomInt(
-			100 - 100*brightnessDiffRatio,
-			100 + 100*brightnessDiffRatio) / 100;
 
-		for (let i = 0; i < data.length; i+=4) {
-			let grainRatio = getRandomInt(
-				100 - 100*grainDiffRatio,
-				100 + 100*grainDiffRatio) / 100;
+    // === Случайная яркость кадра ===
+    let brightnessRatio = getRandomInt(
+      100 - 100*brightnessDiffRatio,
+      100 + 100*brightnessDiffRatio) / 100;
+    let cl = {
+      r: (210 * brightnessRatio).toFixed(),
+      g: (210 * brightnessRatio).toFixed(),
+      b: (200 * brightnessRatio).toFixed()
+    };
 
-			let r = data[i];
-			let g = data[i+1];
-			let b = data[i+2];
+    // === Обрабатываем кадры на вспомагательном canvas ===
+    bctx.fillStyle = `rgb(${cl.r}, ${cl.g}, ${cl.b})`;
+    bctx.drawImage(video, 0, 0, width, height);
+    bctx.globalCompositeOperation = 'color';
+    bctx.fillRect(0, 0, width, height);
+    bctx.globalCompositeOperation = 'exclusion';
+    bctx.drawImage(scratches, 0, 0, width, height);
 
-			let avg = ((0.21 * r) + (0.72 * g) + (0.07 * b)) * brightnessRatio * grainRatio;
-
-			data[i] = avg + 15 * grainRatio;
-			data[i+1] = avg + 10 * grainRatio;
-			data[i+2] = avg;
-		}
-
-		ctx.putImageData(imgData, 0, 0);
+		// === Обработанное изображение рисуем на видимый canvas ===
+    ctx.drawImage(backCanvas, 0, 0, width, height);
 	}
 	
-	if (state.subtitleShown) {
-		showSubtitle(subtitles[state.subtitleIndex]);
+	// === Рисуем субтитры ===
+	if (subtitles.shown) {
+		subtitles.show(subtitles.collection[subtitles.index]);
 	}
 
+	// === Добавляем царапины ===
 	if (Math.random() < scratchStyle.frequency) {
 		requestAnimationFrame(() => {
 			drawScratches(canvas);
 		});	
 	}
 	
+	// === Имитируем плавающий FPS, будто плёнка прокручивается руками ===
 	let newFps = 1000 / getRandomInt(minFps, maxFps); // 1000 - ms in s
 
 	setTimeout(() => {
-		requestAnimationFrame(drawVideo.bind(this, video, canvas, backCanvas, videoWidth, videoHeight));
+		requestAnimationFrame(() => {
+			drawVideo(video, canvas, backCanvas, videoWidth, videoHeight)
+		});
 	}, newFps);
 }
 
@@ -408,13 +512,15 @@ function drawScratches(canvas) {
 	const width = canvas.width;
 	const height = canvas.height;
 
-	const amount = Math.floor(getRandomInt(0, 100) - 90); // MAGIC 2
+	// === Случайное количество царапин ===
+	const amount = Math.floor(getRandomInt(0, 100) - 90);
 
 	for (let i = 0; i <= amount; i++) {
 		let scratch = generateSingleScratch(canvas);
 		ctx.strokeStyle = scratch.style;
 		ctx.lineWidth = scratch.width;
 
+		// === Рисование царапины ===
 		ctx.beginPath();
 		ctx.moveTo(scratch.coords.from.x, scratch.coords.from.y);
 		ctx.lineTo(scratch.coords.to.x, scratch.coords.to.y);
@@ -454,8 +560,10 @@ function generateSingleScratch(canvas) {
 	let flagX = 2 * Math.round(Math.random()) - 1;
 	let flagY = 2 * Math.round(Math.random()) - 1;
 
+	// === Длина царапины ===
 	let length = getRandomInt(height * scratchStyle.minLength / 100,
-														height * scratchStyle.maxLength / 100);
+		height * scratchStyle.maxLength / 100);
+	// === Координаты царапины ===
 	let maxX = getRandomInt(0, length);
 	let maxY = Math.sqrt(Math.pow(length, 2) - Math.pow(maxX, 2));
 
@@ -482,109 +590,23 @@ function generateSingleScratch(canvas) {
 
 }
 
-// === Показать кадр с субтитрами ===
-function showSubtitle(subtl) {
-
-	if (!state.subtitleShown) {
-		return false;
-	}
-
-	let brightnessRatio = getRandomInt(
-		100 - 100*brightnessDiffRatio,
-		100 + 100*brightnessDiffRatio) / 100;
-	let cl = {
-		r: (canvasBgColor.r * brightnessRatio).toFixed(),
-		g: (canvasBgColor.g * brightnessRatio).toFixed(),
-		b: (canvasBgColor.b * brightnessRatio).toFixed()
-	};
-	ctx.fillStyle = `rgb(${cl.r}, ${cl.g}, ${cl.b})`;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	ctx.fillStyle = canvasTextColor;
-	ctx.font = `${subtitleStyles.fontSize}px Oranienbaum bold, serif`;
-
-	let fullTextHeight = (subtl.content.length * subtitleStyles.fontSize)
-		+ ((subtl.content.length - 1) * subtitleStyles.lineInterval);
-	let topPadding = (videoHeight - fullTextHeight) / 2;
-
-	subtl.content.forEach((el, i) => {
-		let top = topPadding + (subtitleStyles.fontSize * i)
-			+ (subtitleStyles.lineInterval * i);
-		let left = subtitleStyles.padding;
-		ctx.fillText(el, left, top);
-	});
-	
-}
-
-function hideSubtitle() {
-	state.subtitleStartTime = null;
-	state.subtitleEndTime = null;
-	state.subtitleShown = false;
-	state.subtitleIndex++;
-	video.play();
-}
-
-// === Распарсить .SRT в Массив субтитров ===
-function parseSrt(text) {
-	let timeConst = {
-		sec: 1000,
-		min: 60,
-		hr: 60
-	};
-	let temp = text.split('\n\n');
-
-	let result = temp.map((el) => {
-
-		let res = {};
-		let subtitle = el.split('\n');
-
-		// === Get subtitle's number ===
-		res.number = parseInt(subtitle[0]);
-
-		let time = subtitle[1].split(' --> ');
-
-		// === Convert start time to MS ===
-		let startTime = time[0].split(':');
-		let startTimeSec = parseInt(startTime[2].split(',').join(''));
-		let startTimeMin = parseInt(startTime[1]) * timeConst.min * timeConst.sec;
-		let startTimeHr = parseInt(startTime[0]) * timeConst.hr * timeConst.min * timeConst.sec;
-		startTime = startTimeSec + startTimeMin	+ startTimeHr;
-		res.startTime = startTime;
-
-		// === Convert end time to MS ===
-		let endTime = time[1].split(':');
-		let endTimeSec = parseInt(endTime[2].split(',').join(''));
-		let endTimeMin = parseInt(endTime[1]) * timeConst.min * timeConst.sec;
-		let endTimeHr = parseInt(endTime[0]) * timeConst.hr * timeConst.min * timeConst.sec;
-		endTime = endTimeSec + endTimeMin	+ endTimeHr;
-		res.endTime = endTime;
-
-		res.timeLength = endTime - startTime;
-
-		// === Join subtitle content ===
-		subtitle.splice(0, 2);
-		res.content = subtitle;
-
-		return res;
-	});
-
-	return result;
-
-}
-
 // === Перенастройка всего при resize страницы ===
 function onWindowResize(e) {
 	
+	// === Считаем новые размеры canvas ===
 	videoWidth = parseInt(getComputedStyle(player).width).toFixed();
 	videoHeight = videoWidth / videoSizeRatio;
 
+	// === Меняем размеры canvas ===
 	canvas.width = videoWidth;
 	canvas.height = videoHeight;
 	backCanvas.width = videoWidth;
 	backCanvas.height = videoHeight;
 
-	subtitleStyles.padding = videoWidth * subtitleStyles.paddingRatio;
-	subtitleStyles.fontSize = videoHeight * subtitleStyles.fontRatio;
-	subtitleStyles.lineInterval = subtitleStyles.fontSize * subtitleStyles.lineIntervalRatio;
+	// === Считаем новые размеры и отступы для субтитров ===
+	subtitles.padding = videoWidth * subtitles.paddingRatio;
+	subtitles.fontSize = (videoHeight * subtitles.fontRatio).toFixed();
+	subtitles.lineInterval = subtitles.fontSize * subtitles.lineIntervalRatio;
 
 }
 
@@ -633,94 +655,3 @@ function fetch(url, method) {
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
-
-
-
-
-
-// function prepareWebGL(canvas, gl, sourceCanvas) {
-//     var program = gl.createProgram();
-
-//     var vertexCode = 'attribute vec2 coordinates;' +
-//         'attribute vec2 texture_coordinates;' +
-//         'varying vec2 v_texcoord;' +
-//         'void main() {' +
-//         '  gl_Position = vec4(coordinates,0.0, 1.0);' +
-//         '  v_texcoord = texture_coordinates;' +
-//         '}';
-
-//     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-//     gl.shaderSource(vertexShader, vertexCode);
-//     gl.compileShader(vertexShader);
-
-//     var fragmentCode = 'precision mediump float;' +
-//         'varying vec2 v_texcoord;' +
-//         'uniform sampler2D u_texture;' +
-//         'uniform float u_time;' +
-//         'float rand(vec2 co){' +
-//         '   return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);' +
-//         '}' +
-//         'void main() {' +
-//         '   gl_FragColor = texture2D(u_texture, v_texcoord) * .8 + texture2D(u_texture, v_texcoord) * rand(v_texcoord * u_time) * .2;' +
-//         '}';
-
-//     var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-//     gl.shaderSource(fragmentShader, fragmentCode);
-//     gl.compileShader(fragmentShader);
-
-//     gl.attachShader(program, vertexShader);
-//     gl.attachShader(program, fragmentShader);
-
-//     gl.linkProgram(program);
-//     gl.useProgram(program);
-
-//     var positionLocation = gl.getAttribLocation(program, 'coordinates');
-//     var texcoordLocation = gl.getAttribLocation(program, 'texture_coordinates');
-//     GL_TIME_UNIFORM = gl.getUniformLocation(program, 'u_time');
-
-//     var buffer = gl.createBuffer();
-//     var vertices = [
-//         -1, -1,
-//         1, -1,
-//         -1, 1,
-//         -1, 1,
-//         1, -1,
-//         1, 1
-//     ];
-//     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-//     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-//     gl.enableVertexAttribArray(positionLocation);
-//     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-//     buffer = gl.createBuffer();
-//     var textureCoordinates = [
-//         0, 1,
-//         1, 1,
-//         0, 0,
-//         0, 0,
-//         1, 1,
-//         1, 0
-//     ];
-//     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-//     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
-//     gl.enableVertexAttribArray(texcoordLocation);
-//     gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
-// }
-
-
-// function postprocessWebGL(canvas, gl, sourceCanvas, delta) {
-//     GL_TIME += delta;
-//     gl.uniform1f(GL_TIME_UNIFORM, GL_TIME / 1000);
-//     var texture = gl.createTexture();
-//     gl.bindTexture(gl.TEXTURE_2D, texture);
-//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-//     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sourceCanvas);
-
-//     gl.viewport(0,0,canvas.width,canvas.height);
-//     gl.enable(gl.DEPTH_TEST);
-//     gl.clear(gl.COLOR_BUFFER_BIT);
-//     gl.drawArrays(gl.TRIANGLES, 0, 6);
-// }
