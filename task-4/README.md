@@ -24,7 +24,7 @@
 Подключил и заставил работать `IndexedDB`. Правда, так и не нашёл ей применения в рамках завернутого сайта, поэтому просто открыл БД и убедился, что она создается успешно.
 
 Скриншоты:
-[[https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/splash.png|alt=splashscreen]]
+![SplashScreen](https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/splash.png?raw=true)
 
 ## С какими трудностями столкнулся
 
