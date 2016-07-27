@@ -1,0 +1,21 @@
+{
+    "prepare_queue": {
+        "installed": [],
+        "uninstalled": []
+    },
+    "config_munge": {
+        "files": {}
+    },
+    "installed_plugins": {
+        "cordova-plugin-indexeddb-async": {
+            "PACKAGE_NAME": "com.nikita.mysecondapp"
+        },
+        "cordova-plugin-splashscreen": {
+            "PACKAGE_NAME": "com.nikita.mysecondapp"
+        },
+        "cordova-plugin-whitelist": {
+            "PACKAGE_NAME": "com.nikita.mysecondapp"
+        }
+    },
+    "dependent_plugins": {}
+}

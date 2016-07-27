@@ -1,0 +1,36 @@
+{
+    "cordova-plugin-whitelist": {
+        "source": {
+            "type": "git",
+            "url": "https://github.com/apache/cordova-plugin-whitelist.git",
+            "subdir": "."
+        },
+        "is_top_level": true,
+        "variables": {}
+    },
+    "cordova-plugin-indexeddb-async": {
+        "source": {
+            "type": "registry",
+            "id": "cordova-plugin-indexeddb-async"
+        },
+        "is_top_level": true,
+        "variables": {}
+    },
+    "cordova-plugin-splashscreen": {
+        "source": {
+            "type": "registry",
+            "id": "cordova-plugin-splashscreen"
+        },
+        "is_top_level": true,
+        "variables": {}
+    },
+    "cordova-plugin-websql-async": {
+        "source": {
+            "type": "git",
+            "url": "https://github.com/Thinkwise/cordova-plugin-websql.git",
+            "subdir": "."
+        },
+        "is_top_level": false,
+        "variables": {}
+    }
+}

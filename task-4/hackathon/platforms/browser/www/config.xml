@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.nikita.mysecondapp" version="1.1.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" xmlns:gap="http://phonegap.com/ns/1.0">
+    <name>Fantastic Hackathon</name>
+    <description>
+        Попробуем обернуть лендинг, сделанный мной не так давно.
+    </description>
+    <author email="4esnog96@gmail.com" href="http://c-nik.xyz">
+        Nikita Chesnokov
+    </author>
+    <content src="index.html" />
+    <access origin="*" />
+    <access launch-external="yes" origin="http://*" />
+    <access launch-external="yes" origin="https://*" />
+    <hook src="hooks/after_prepare/030_resource_files.js" type="after_prepare" />
+    <preference name="SplashScreen" value="/img/splash.png" />
+    <preference name="FadeSplashScreenDuration" value="250" />
+    <preference name="ShowSplashScreenSpinner" value="false" />
+    <preference name="AutoHideSplashScreen" value="false" />
+    <preference name="android-targetSdkVersion" value="21" />
+    <preference name="android-build-tool" value="ant" />
+    <preference name="SplashScreenDelay" value="500" />
+    <preference name="SplashScreenBackgroundColor" value="#FFFFFF" />
+</widget>

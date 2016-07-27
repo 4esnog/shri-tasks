@@ -1,0 +1,55 @@
+{
+    "prepare_queue": {
+        "installed": [],
+        "uninstalled": []
+    },
+    "config_munge": {
+        "files": {
+            "res/xml/config.xml": {
+                "parents": {
+                    "/*": [
+                        {
+                            "xml": "<feature name=\"SplashScreen\"><param name=\"android-package\" value=\"org.apache.cordova.splashscreen.SplashScreen\" /><param name=\"onload\" value=\"true\" /></feature>",
+                            "count": 1
+                        },
+                        {
+                            "xml": "<feature name=\"Whitelist\"><param name=\"android-package\" value=\"org.apache.cordova.whitelist.WhitelistPlugin\" /><param name=\"onload\" value=\"true\" /></feature>",
+                            "count": 1
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "installed_plugins": {
+        "cordova-plugin-indexeddb-async": {
+            "PACKAGE_NAME": "com.nikita.mysecondapp"
+        },
+        "cordova-plugin-splashscreen": {
+            "PACKAGE_NAME": "com.nikita.mysecondapp"
+        },
+        "cordova-plugin-whitelist": {
+            "PACKAGE_NAME": "com.nikita.mysecondapp"
+        }
+    },
+    "dependent_plugins": {},
+    "modules": [
+        {
+            "file": "plugins/cordova-plugin-indexeddb-async/www/indexeddbshim.min.js",
+            "id": "cordova-plugin-indexeddb-async.IndexedDBShim",
+            "runs": true
+        },
+        {
+            "file": "plugins/cordova-plugin-splashscreen/www/splashscreen.js",
+            "id": "cordova-plugin-splashscreen.SplashScreen",
+            "clobbers": [
+                "navigator.splashscreen"
+            ]
+        }
+    ],
+    "plugin_metadata": {
+        "cordova-plugin-indexeddb-async": "0.0.1",
+        "cordova-plugin-splashscreen": "3.2.2",
+        "cordova-plugin-whitelist": "1.2.3-dev"
+    }
+}

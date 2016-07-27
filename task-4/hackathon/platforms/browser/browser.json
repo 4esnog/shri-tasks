@@ -1,0 +1,48 @@
+{
+    "prepare_queue": {
+        "installed": [],
+        "uninstalled": []
+    },
+    "config_munge": {
+        "files": {}
+    },
+    "installed_plugins": {
+        "cordova-plugin-indexeddb-async": {
+            "PACKAGE_NAME": "com.nikita.mysecondapp"
+        },
+        "cordova-plugin-whitelist": {
+            "PACKAGE_NAME": "com.nikita.mysecondapp"
+        },
+        "cordova-plugin-splashscreen": {
+            "PACKAGE_NAME": "com.nikita.mysecondapp"
+        }
+    },
+    "dependent_plugins": {},
+    "modules": [
+        {
+            "file": "plugins/cordova-plugin-indexeddb-async/www/indexeddbshim.min.js",
+            "id": "cordova-plugin-indexeddb-async.IndexedDBShim",
+            "pluginId": "cordova-plugin-indexeddb-async",
+            "runs": true
+        },
+        {
+            "file": "plugins/cordova-plugin-splashscreen/www/splashscreen.js",
+            "id": "cordova-plugin-splashscreen.SplashScreen",
+            "pluginId": "cordova-plugin-splashscreen",
+            "clobbers": [
+                "navigator.splashscreen"
+            ]
+        },
+        {
+            "file": "plugins/cordova-plugin-splashscreen/src/browser/SplashScreenProxy.js",
+            "id": "cordova-plugin-splashscreen.SplashScreenProxy",
+            "pluginId": "cordova-plugin-splashscreen",
+            "runs": true
+        }
+    ],
+    "plugin_metadata": {
+        "cordova-plugin-indexeddb-async": "0.0.1",
+        "cordova-plugin-whitelist": "1.2.3-dev",
+        "cordova-plugin-splashscreen": "3.2.2"
+    }
+}

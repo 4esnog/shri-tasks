@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.nikita.mysecondapp" version="1.1.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
+    <icon height="150" src="/res/icons/windows/Square150x150Logo.scale-100.png" width="150" />
+    <icon height="360" src="/res/icons/windows/Square150x150Logo.scale-240.png" width="360" />
+    <icon height="30" src="/res/icons/windows/Square30x30Logo.scale-100.png" width="30" />
+    <icon height="" src="/res/icons/windows/Square310x310Logo.scale-100.png" width="" />
+    <icon height="106" src="/res/icons/windows/Square44x44Logo.scale-240.png" width="106" />
+    <icon height="70" src="/res/icons/windows/Square70x70Logo.scale-100.png" width="70" />
+    <icon height="170" src="/res/icons/windows/Square71x71Logo.scale-240.png" width="170" />
+    <icon height="50" src="/res/icons/windows/StoreLogo.scale-100.png" width="50" />
+    <icon height="120" src="/res/icons/windows/StoreLogo.scale-240.png" width="120" />
+    <icon height="150" src="/res/icons/windows/Wide310x150Logo.scale-100.png" width="310" />
+    <icon height="360" src="/res/icons/windows/Wide310x150Logo.scale-240.png" width="744" />
+    <splash height="300" src="/res/screens/windows/SplashScreen.scale-100.png" width="620" />
+    <splash height="1920" src="/res/screens/windows/SplashScreen.scale-240.png" width="1152" />
+    <splash height="1920" src="/res/screens/windows/SplashScreenPhone.scale-240.png" width="1152" />
+    <name>Fantastic Hackathon</name>
+    <description>
+        Попробуем обернуть лендинг, сделанный мной не так давно.
+    </description>
+    <author email="4esnog96@gmail.com" href="http://c-nik.xyz">
+        Nikita Chesnokov
+    </author>
+    <content src="index.html" />
+    <access origin="*" />
+    <access launch-external="yes" origin="http://*" />
+    <access launch-external="yes" origin="https://*" />
+    <hook src="hooks/after_prepare/030_resource_files.js" type="after_prepare" />
+    <preference name="SplashScreen" value="screen" />
+    <preference name="FadeSplashScreenDuration" value="250" />
+    <preference name="ShowSplashScreenSpinner" value="false" />
+    <preference name="AutoHideSplashScreen" value="false" />
+    <preference name="android-targetSdkVersion" value="21" />
+    <preference name="android-build-tool" value="ant" />
+</widget>

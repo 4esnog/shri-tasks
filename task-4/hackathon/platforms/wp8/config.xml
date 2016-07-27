@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.nikita.mysecondapp" version="1.1.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
+    <feature name="SplashScreen">
+        <param name="wp-package" value="SplashScreen" />
+        <param name="onload" value="true" />
+    </feature>
+    <name>Fantastic Hackathon</name>
+    <description>
+        Попробуем обернуть лендинг, сделанный мной не так давно.
+    </description>
+    <author email="4esnog96@gmail.com" href="http://c-nik.xyz">
+        Nikita Chesnokov
+    </author>
+    <content src="index.html" />
+    <access origin="*" />
+    <access launch-external="yes" origin="http://*" />
+    <access launch-external="yes" origin="https://*" />
+    <hook src="hooks/after_prepare/030_resource_files.js" type="after_prepare" />
+    <icon height="99" src="/res/icons/wp8/ApplicationIcon.png" width="99" />
+    <icon height="159" src="/res/icons/wp8/Background.png" width="159" />
+    <splash height="1280" src="/res/screens/wp8/SplashScreenImage.jpg" width="768" />
+    <splash height="1280" src="/res/screens/wp8/SplashScreenImage.screen-720p.jpg" width="720" />
+    <splash height="800" src="/res/screens/wp8/SplashScreenImage.screen-WVGA.jpg" width="480" />
+    <splash height="1280" src="/res/screens/wp8/SplashScreenImage.screen-WXGA.jpg" width="768" />
+    <preference name="SplashScreen" value="screen" />
+    <preference name="FadeSplashScreenDuration" value="250" />
+    <preference name="ShowSplashScreenSpinner" value="false" />
+    <preference name="AutoHideSplashScreen" value="false" />
+    <preference name="android-targetSdkVersion" value="21" />
+    <preference name="android-build-tool" value="ant" />
+</widget>
