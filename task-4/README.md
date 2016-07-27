@@ -23,8 +23,16 @@
 
 Подключил и заставил работать `IndexedDB`. Правда, так и не нашёл ей применения в рамках завернутого сайта, поэтому просто открыл БД и убедился, что она создается успешно.
 
-Скриншоты:
-![SplashScreen](https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/splash.png?raw=true)
+### Собранное приложение
+[Android (.apk)](https://github.com/4esnog/shri-tasks/tree/gh-pages/task-4/hackathon/platforms/android/build/outputs/apk/)
+
+### Скриншоты:
+[SplashScreen](https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/splash.png?raw=true)
+[Иконка на Android (название - Fantastic Hackathon)](https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/icon-on-android.png)
+[Вид наверху страницу](https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/view-top.png)
+[Вид формы](https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/view-form.png)
+[Popup, всплывающий при успешной работе формы регистрации](https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/popup.png)
+[Отладка WebView через Chrome DevTools](https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/devtools.png)
 
 ## С какими трудностями столкнулся
 
