@@ -24,7 +24,7 @@
 Подключил и заставил работать `IndexedDB`. Правда, так и не нашёл ей применения в рамках завернутого сайта, поэтому просто открыл БД и убедился, что она создается успешно.
 
 ### Собранное приложение
-- [Android (.apk)](https://github.com/4esnog/shri-tasks/tree/gh-pages/task-4/hackathon/platforms/android/build/outputs/apk/)
+- [Android (.apk)](https://github.com/4esnog/shri-tasks/releases/tag/v.1.1.0)
 
 ### Скриншоты:
 - [SplashScreen](https://github.com/4esnog/shri-tasks/blob/gh-pages/task-4/screenshots/splash.png?raw=true)
